@@ -55,8 +55,8 @@ export default function Dashboard() {
             <Zap className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">WattMapper</h1>
-            <p className="text-xs text-muted-foreground">Wattwatchers Device Installation Logger</p>
+            <h1 className="text-xl font-bold text-foreground">InstallHub</h1>
+            <p className="text-xs text-muted-foreground">Installation Management Platform</p>
           </div>
         </div>
         <Link to="/audit/new">

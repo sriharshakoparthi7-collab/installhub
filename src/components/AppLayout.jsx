@@ -23,7 +23,7 @@ export default function AppLayout() {
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <Zap className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-foreground text-sm hidden sm:inline">WattMapper</span>
+            <span className="font-semibold text-foreground text-sm hidden sm:inline">InstallHub</span>
           </Link>
           <div className="flex items-center gap-3">
             {!isOnHome && (

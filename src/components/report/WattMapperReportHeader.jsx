@@ -23,7 +23,7 @@ export default function WattMapperReportHeader({ audit }) {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0E2240" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
-            <span style={{ fontWeight: 800, fontSize: '14px', color: '#0E2240', letterSpacing: '0.05em' }}>WATTMAPPER</span>
+            <span style={{ fontWeight: 800, fontSize: '14px', color: '#0E2240', letterSpacing: '0.05em' }}>INSTALLHUB</span>
           </div>
         </div>
 

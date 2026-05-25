@@ -61,7 +61,7 @@ export default function WattMapperDownloadDialog({ open, onClose, assets, zones,
     if (selectedPhotos.size === 0) return;
     setDownloadingPhotos(true);
     const zip = new JSZip();
-    const folder = zip.folder('WattMapper-Photos');
+    const folder = zip.folder('InstallHub-Photos');
     const selected = allPhotos.filter(p => selectedPhotos.has(p.id));
 
     await Promise.all(selected.map(async (photo, i) => {
@@ -80,7 +80,7 @@ export default function WattMapperDownloadDialog({ open, onClose, assets, zones,
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'WattMapper-Photos.zip';
+    a.download = 'InstallHub-Photos.zip';
     a.click();
     URL.revokeObjectURL(url);
     setDownloadingPhotos(false);

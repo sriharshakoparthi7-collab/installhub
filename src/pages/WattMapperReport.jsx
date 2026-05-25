@@ -104,7 +104,7 @@ export default function WattMapperReport() {
     el.style.colorScheme = '';
     spacers.forEach(s => s.remove());
 
-    const siteName = data?.audit?.site_name || 'WattMapper';
+    const siteName = data?.audit?.site_name || 'InstallHub';
     const auditDate = data?.audit?.audit_date
       ? new Date(data.audit.audit_date).toLocaleDateString('en-AU', { day: '2-digit', month: 'long', year: 'numeric' })
       : '';
@@ -124,7 +124,7 @@ export default function WattMapperReport() {
       pdf.setTextColor(34, 211, 238);
       pdf.setFontSize(7.5);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('WATTMAPPER', marginX, borderInset + 7.5);
+      pdf.text('INSTALLHUB', marginX, borderInset + 7.5);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(255, 255, 255);
       pdf.text(`${siteName} — Installation Report`, pdfW / 2, borderInset + 7.5, { align: 'center' });
@@ -140,7 +140,7 @@ export default function WattMapperReport() {
       pdf.setTextColor(90, 110, 150);
       pdf.setFontSize(7);
       pdf.setFont('helvetica', 'normal');
-      pdf.text('WattMapper — Confidential Installation Report', marginX, footerY + 8);
+      pdf.text('InstallHub — Confidential Installation Report', marginX, footerY + 8);
       pdf.text(`Page ${pageNum} of ${totalPages}`, pdfW - marginX, footerY + 8, { align: 'right' });
     };
 
@@ -264,7 +264,7 @@ export default function WattMapperReport() {
 
         {/* Footer */}
         <div style={{ padding: '20px 40px', textAlign: 'center', fontSize: '9pt', background: '#0E2240', color: '#93C5FD' }}>
-          WattMapper Installation Report &nbsp;|&nbsp; {audit.site_name} &nbsp;|&nbsp; {moment().format('MMMM YYYY')} &nbsp;|&nbsp; Confidential
+          InstallHub Installation Report &nbsp;|&nbsp; {audit.site_name} &nbsp;|&nbsp; {moment().format('MMMM YYYY')} &nbsp;|&nbsp; Confidential
         </div>
       </div>
 
