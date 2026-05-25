@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, Save, Loader2, CheckCircle, FileText, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Loader2, CheckCircle, FileText, Trash2, AlertTriangle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import ZoneCard from '../components/ZoneCard';
 import PullToRefresh from '../components/PullToRefresh';
@@ -139,11 +139,19 @@ export default function SiteAudit() {
           Back
         </button>
         <div className="flex items-center gap-2">
+          {!isNew && (
+            <Link to={`/audit/${auditId}/wattmapper-report`}>
+              <Button variant="outline" size="sm">
+                <Download className="w-3.5 h-3.5 mr-1.5" />
+                Full Report
+              </Button>
+            </Link>
+          )}
           {!isNew && audit.status === 'Completed' && (
             <Link to={`/audit/${auditId}/report`}>
               <Button variant="outline" size="sm">
                 <FileText className="w-3.5 h-3.5 mr-1.5" />
-                Report
+                Data View
               </Button>
             </Link>
           )}

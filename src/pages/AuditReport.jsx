@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft, Layers, GitBranch, AlertTriangle, Zap, CircuitBoard, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Layers, GitBranch, AlertTriangle, Zap, CircuitBoard, CheckCircle2, FileDown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -112,13 +113,22 @@ export default function AuditReport() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <button
-          onClick={() => navigate(`/audit/${auditId}`)}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Installation
-        </button>
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => navigate(`/audit/${auditId}`)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Installation
+          </button>
+          <Link
+            to={`/audit/${auditId}/wattmapper-report`}
+            className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            <FileDown className="w-4 h-4" />
+            Full PDF Report
+          </Link>
+        </div>
         <div className="bg-gradient-to-br from-primary/10 via-accent/5 to-transparent rounded-2xl p-5 border border-primary/10">
           <h1 className="text-xl font-bold text-foreground">{audit?.site_name}</h1>
           <p className="text-sm text-muted-foreground mt-1">{audit?.site_address}</p>
