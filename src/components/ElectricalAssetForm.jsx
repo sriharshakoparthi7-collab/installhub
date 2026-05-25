@@ -8,6 +8,8 @@ import MultiPhotoUpload from './MultiPhotoUpload';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Info } from 'lucide-react';
+import WattwatcherA3RMForm from './WattwatcherA3RMForm';
+import WattwatcherA6MForm from './WattwatcherA6MForm';
 
 function Field({ label, hint, children }) {
   return (
@@ -30,6 +32,12 @@ const ASSET_TYPES = [
   { value: 'Other', label: 'Other' },
 ];
 
+const METER_DEVICE_TYPES = [
+  { value: 'A3RM Auditor', label: 'A3RM Auditor (SW MaaS)' },
+  { value: 'A6M Auditor', label: 'A6M Auditor' },
+  { value: 'Other Meter', label: 'Other Meter' },
+];
+
 const METER_CLASSIFICATIONS = [
   { value: 'Utility / Gate Meter', label: 'Utility / Gate Meter' },
   { value: 'Sub-meter', label: 'Sub-meter' },
@@ -48,6 +56,7 @@ const METER_COVERAGE = [
 export default function ElectricalAssetForm({ data, onChange, auditId, currentZoneId }) {
   const [allAssets, setAllAssets] = useState([]);
   const [siteCode, setSiteCode] = useState('');
+  const [zoneName, setZoneName] = useState('');
   const [userEditedCode, setUserEditedCode] = useState(!!data?.display_code);
   const set = (key, val) => onChange({ ...data, [key]: val });
 
@@ -56,10 +65,10 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
       Promise.all([
         base44.entities.ElectricalAsset.filter({ audit_id: auditId }),
         base44.entities.Audit.filter({ id: auditId }),
-      ]).then(([assets, audits]) => {
+        currentZoneId ? base44.entities.Zone.filter({ id: currentZoneId }) : Promise.resolve([]),
+      ]).then(([assets, audits, zones]) => {
         setAllAssets(assets.filter(a => a.id !== data?.id));
         if (audits[0]?.site_name) {
-          // Derive site code: first letters of each word, max 6 chars, uppercase
           const code = audits[0].site_name
             .split(/\s+/)
             .map(w => w[0])
@@ -68,29 +77,38 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
             .substring(0, 6);
           setSiteCode(code);
         }
+        if (zones[0]?.zone_name) {
+          // Use first word or abbreviation of zone name
+          const zCode = zones[0].zone_name
+            .split(/\s+/)
+            .map(w => w[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 4);
+          setZoneName(zCode);
+        }
       });
     }
-  }, [auditId]);
+  }, [auditId, currentZoneId]);
 
-  // Auto-generate display code from site code + asset name + parent name
-  // Only auto-update if user hasn't manually edited it
+  // Auto-generate display code: [SiteCode]-[Zone]-[EquipName]-[ElecParent]
   useEffect(() => {
     if (userEditedCode) return;
-    const namePart = (data.asset_name || '').replace(/\s+/g, '').toUpperCase();
+    const equipPart = (data.asset_name || '').replace(/\s+/g, '').toUpperCase();
     let parentPart = '';
     if (data.electrical_parent_tbc) {
       parentPart = 'TBC';
     } else if (data.electrical_parent_id) {
       const parent = allAssets.find(a => a.id === data.electrical_parent_id);
       if (parent) {
-        parentPart = (parent.display_code || parent.asset_name || '').replace(/\s+/g, '').toUpperCase();
+        parentPart = (parent.asset_name || '').replace(/\s+/g, '').toUpperCase();
       }
     }
-    const parts = [siteCode, namePart, parentPart].filter(Boolean);
+    const parts = [siteCode, zoneName, equipPart, parentPart].filter(Boolean);
     if (parts.length > 0) {
       onChange({ ...data, display_code: parts.join('-') });
     }
-  }, [siteCode, data.asset_name, data.electrical_parent_id, data.electrical_parent_tbc, userEditedCode]);
+  }, [siteCode, zoneName, data.asset_name, data.electrical_parent_id, data.electrical_parent_tbc, userEditedCode]);
 
   const parentOptions = [
     { value: 'TBC', label: '— TBC / Unknown (to be confirmed) —' },
@@ -102,7 +120,6 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
 
   const handleParentChange = (val) => {
     if (val === 'TBC') {
-      set('electrical_parent_tbc', true);
       onChange({ ...data, electrical_parent_id: '', electrical_parent_tbc: true });
     } else {
       onChange({ ...data, electrical_parent_id: val, electrical_parent_tbc: false });
@@ -124,12 +141,12 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
             options={ASSET_TYPES}
           />
         </Field>
-        <Field label="Asset Name *" hint="Short name, e.g. MSSB1, HVAC DB-1, MSB">
+        <Field label="Equipment Name *" hint="Short name, e.g. MSSB1, HVAC DB-1, MSB">
           <Input value={data.asset_name || ''} onChange={e => set('asset_name', e.target.value)} placeholder="e.g. MSSB1" />
         </Field>
         <Field
           label="Display Code"
-          hint="Auto-generated from site · asset name · electrical parent. Edit to override."
+          hint="Format: [Site Code] - [Zone] - [Equipment Name] - [Electrical Parent]. Auto-generated — edit to override."
         >
           <Input
             value={data.display_code || ''}
@@ -137,7 +154,8 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
               setUserEditedCode(true);
               set('display_code', e.target.value);
             }}
-            placeholder="SITE-NAME-PARENT"
+            placeholder="SITE-ZONE-EQUIPNAME-PARENT"
+            className="font-mono text-sm"
           />
         </Field>
       </div>
@@ -156,7 +174,7 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Electrical Hierarchy</p>
         <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3 flex gap-2">
           <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-blue-700 dark:text-blue-300">Select the board that electrically feeds this asset. You can choose any asset across the entire site. Use TBC if unknown.</p>
+          <p className="text-xs text-blue-700 dark:text-blue-300">Select the board that electrically feeds this asset. Use TBC if unknown.</p>
         </div>
         <Field label="Fed From (Electrical Parent)">
           <MobileSelect
@@ -194,62 +212,70 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
         </Field>
       </div>
 
-      {/* Wattwatcher Device */}
+      {/* Metering / Device */}
       <div className="space-y-4">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Wattwatcher Device</p>
-        <div className="flex items-center gap-3">
-          <Switch
-            id="has_wattwatcher"
-            checked={!!data.has_wattwatcher}
-            onCheckedChange={v => set('has_wattwatcher', v)}
-          />
-          <Label htmlFor="has_wattwatcher" className="text-sm font-medium">Wattwatcher Device Installed</Label>
-        </div>
-        {data.has_wattwatcher && (
-          <div className="space-y-4 pl-3 border-l-2 border-primary/30">
-            <Field label="Device ID / Serial Number">
-              <Input value={data.wattwatcher_device_id || ''} onChange={e => set('wattwatcher_device_id', e.target.value)} placeholder="e.g. D001, WW-12345" />
-            </Field>
-            <Field label="Wattwatcher Model">
-              <Input value={data.wattwatcher_model || ''} onChange={e => set('wattwatcher_model', e.target.value)} placeholder="e.g. Auditor 6M" />
-            </Field>
-            <PhotoUpload value={data.wattwatcher_photo || ''} onChange={v => set('wattwatcher_photo', v)} label="Device Photo" />
-          </div>
-        )}
-      </div>
-
-      {/* Metering */}
-      <div className="space-y-4">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Metering</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Metering / Device</p>
         <div className="flex items-center gap-3">
           <Switch
             id="meter_present"
             checked={!!data.meter_present}
             onCheckedChange={v => set('meter_present', v)}
           />
-          <Label htmlFor="meter_present" className="text-sm font-medium">Metering Present</Label>
+          <Label htmlFor="meter_present" className="text-sm font-medium">Metering / Device Present</Label>
         </div>
+
         {data.meter_present && (
-          <div className="space-y-4 pl-3 border-l-2 border-accent/40">
-            <Field label="Meter Device ID / Serial">
-              <Input value={data.meter_device_id || ''} onChange={e => set('meter_device_id', e.target.value)} placeholder="e.g. D001, D004" />
-            </Field>
-            <Field label="Meter Classification">
+          <div className="space-y-4 pl-3 border-l-2 border-primary/30">
+            <Field label="Device Type">
               <MobileSelect
-                value={data.meter_classification || ''}
-                onValueChange={v => set('meter_classification', v)}
-                placeholder="Select classification"
-                options={METER_CLASSIFICATIONS}
+                value={data.meter_device_type || ''}
+                onValueChange={v => set('meter_device_type', v)}
+                placeholder="Select device type..."
+                options={METER_DEVICE_TYPES}
               />
             </Field>
-            <Field label="Coverage Type" hint="Does this meter capture the entire board load, or a specific circuit?">
-              <MobileSelect
-                value={data.meter_coverage_type || ''}
-                onValueChange={v => set('meter_coverage_type', v)}
-                placeholder="Select coverage"
-                options={METER_COVERAGE}
-              />
-            </Field>
+
+            {data.meter_device_type === 'A3RM Auditor' && (
+              <div className="space-y-2">
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-primary">SW MaaS — A3RM Auditor Installation Form</p>
+                </div>
+                <WattwatcherA3RMForm data={data} onChange={onChange} />
+              </div>
+            )}
+
+            {data.meter_device_type === 'A6M Auditor' && (
+              <div className="space-y-2">
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-primary">A6M Auditor Installation Form</p>
+                </div>
+                <WattwatcherA6MForm data={data} onChange={onChange} />
+              </div>
+            )}
+
+            {data.meter_device_type === 'Other Meter' && (
+              <div className="space-y-4">
+                <Field label="Meter Device ID / Serial">
+                  <Input value={data.meter_device_id || ''} onChange={e => set('meter_device_id', e.target.value)} placeholder="e.g. D001, D004" />
+                </Field>
+                <Field label="Meter Classification">
+                  <MobileSelect
+                    value={data.meter_classification || ''}
+                    onValueChange={v => set('meter_classification', v)}
+                    placeholder="Select classification"
+                    options={METER_CLASSIFICATIONS}
+                  />
+                </Field>
+                <Field label="Coverage Type" hint="Does this meter capture the entire board load, or a specific circuit?">
+                  <MobileSelect
+                    value={data.meter_coverage_type || ''}
+                    onValueChange={v => set('meter_coverage_type', v)}
+                    placeholder="Select coverage"
+                    options={METER_COVERAGE}
+                  />
+                </Field>
+              </div>
+            )}
           </div>
         )}
       </div>
