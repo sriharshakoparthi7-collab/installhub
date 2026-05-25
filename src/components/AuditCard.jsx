@@ -66,7 +66,7 @@ export default function AuditCard({ audit, onDelete }) {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Audit?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Installation?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete <strong>{audit.site_name}</strong>? This cannot be undone.
             </AlertDialogDescription>

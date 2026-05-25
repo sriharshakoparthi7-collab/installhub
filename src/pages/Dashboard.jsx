@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Plus, Leaf, Search, ClipboardList } from 'lucide-react';
+import { Plus, Zap, Search, ClipboardList } from 'lucide-react';
 import PullToRefresh from '../components/PullToRefresh';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,17 +52,17 @@ export default function Dashboard() {
       <div className="bg-gradient-to-br from-primary/10 via-accent/5 to-transparent rounded-2xl p-6 border border-primary/10">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <Leaf className="w-5 h-5 text-primary-foreground" />
+            <Zap className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Sustainability Wise</h1>
-            <p className="text-xs text-muted-foreground">Energy Audit Management</p>
+            <h1 className="text-xl font-bold text-foreground">WattMapper</h1>
+            <p className="text-xs text-muted-foreground">Wattwatchers Device Installation Logger</p>
           </div>
         </div>
         <Link to="/audit/new">
           <Button className="w-full mt-3 h-12 text-sm font-semibold">
             <Plus className="w-4 h-4 mr-2" />
-            Start New Site Audit
+            Start New Site Installation
           </Button>
         </Link>
       </div>
@@ -84,13 +84,13 @@ export default function Dashboard() {
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
             <ClipboardList className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h3 className="font-medium text-foreground mb-1">No audits yet</h3>
-          <p className="text-sm text-muted-foreground">Start your first site audit to get going</p>
+          <h3 className="font-medium text-foreground mb-1">No installations yet</h3>
+          <p className="text-sm text-muted-foreground">Start your first site installation to get going</p>
         </div>
       ) : (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            All Audits ({filtered.length})
+            All Installations ({filtered.length})
           </h2>
           {filtered.map(audit => (
             <AuditCard key={audit.id} audit={audit} onDelete={handleDelete} />

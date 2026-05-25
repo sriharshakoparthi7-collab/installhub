@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { LayoutDashboard, Leaf, Settings, Home } from 'lucide-react';
+import { LayoutDashboard, Zap, Settings, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AppLayout() {
@@ -21,9 +21,9 @@ export default function AppLayout() {
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 select-none">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Leaf className="w-4 h-4 text-primary-foreground" />
+              <Zap className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-foreground text-sm hidden sm:inline">Sustainability Wise</span>
+            <span className="font-semibold text-foreground text-sm hidden sm:inline">WattMapper</span>
           </Link>
           <div className="flex items-center gap-3">
             {!isOnHome && (

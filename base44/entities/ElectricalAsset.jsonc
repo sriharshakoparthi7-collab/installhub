@@ -1,0 +1,138 @@
+{
+  "name": "ElectricalAsset",
+  "type": "object",
+  "properties": {
+    "audit_id": {
+      "type": "string",
+      "title": "Audit ID"
+    },
+    "zone_id": {
+      "type": "string",
+      "title": "Zone ID (Spatial Parent)"
+    },
+    "asset_name": {
+      "type": "string",
+      "title": "Asset Name"
+    },
+    "display_code": {
+      "type": "string",
+      "title": "Display Code (e.g. MELB-L01-MSSB1-MSB)"
+    },
+    "asset_type": {
+      "type": "string",
+      "title": "Asset Type",
+      "enum": [
+        "MSB",
+        "MSSB",
+        "DB",
+        "HVAC-DB",
+        "LX-DB",
+        "PV-DB",
+        "MCC",
+        "Other"
+      ]
+    },
+    "electrical_parent_id": {
+      "type": "string",
+      "title": "Electrical Parent Asset ID (TBC if unknown)"
+    },
+    "electrical_parent_tbc": {
+      "type": "boolean",
+      "title": "Electrical Parent TBC",
+      "default": false
+    },
+    "location_description": {
+      "type": "string",
+      "title": "Physical Location Description"
+    },
+    "phase": {
+      "type": "string",
+      "title": "Phase",
+      "enum": [
+        "Single Phase",
+        "Three Phase",
+        "Unknown"
+      ]
+    },
+    "amperage_rating": {
+      "type": "string",
+      "title": "Amperage Rating (A)"
+    },
+    "site_nmi": {
+      "type": "string",
+      "title": "Site NMI"
+    },
+    "photo": {
+      "type": "string",
+      "title": "Photo"
+    },
+    "extra_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Additional Photos"
+    },
+    "has_wattwatcher": {
+      "type": "boolean",
+      "title": "Wattwatcher Device Installed",
+      "default": false
+    },
+    "wattwatcher_device_id": {
+      "type": "string",
+      "title": "Wattwatcher Device ID / Serial"
+    },
+    "wattwatcher_model": {
+      "type": "string",
+      "title": "Wattwatcher Model"
+    },
+    "wattwatcher_photo": {
+      "type": "string",
+      "title": "Wattwatcher Device Photo"
+    },
+    "meter_present": {
+      "type": "boolean",
+      "title": "Metering Present",
+      "default": false
+    },
+    "meter_device_id": {
+      "type": "string",
+      "title": "Meter Device ID / Serial"
+    },
+    "meter_classification": {
+      "type": "string",
+      "title": "Meter Classification",
+      "enum": [
+        "Utility / Gate Meter",
+        "Sub-meter",
+        "Check Meter",
+        "Solar / Generation Meter",
+        "Other"
+      ]
+    },
+    "meter_coverage_type": {
+      "type": "string",
+      "title": "Meter Coverage Type",
+      "enum": [
+        "Entire Board Load",
+        "Specific Outgoing Circuit",
+        "Multiple Circuits",
+        "Unknown"
+      ]
+    },
+    "sub_circuits_description": {
+      "type": "string",
+      "title": "Sub-Circuits Description"
+    },
+    "comments": {
+      "type": "string",
+      "title": "Comments"
+    }
+  },
+  "required": [
+    "audit_id",
+    "zone_id",
+    "asset_name",
+    "asset_type"
+  ]
+}

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, Save, Loader2, CheckCircle, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Loader2, CheckCircle, FileText, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import ZoneCard from '../components/ZoneCard';
 import PullToRefresh from '../components/PullToRefresh';
@@ -21,6 +21,7 @@ export default function SiteAudit() {
     site_name: '', site_address: '', inspector_name: '',
     audit_date: new Date().toISOString().split('T')[0], status: 'Draft',
   });
+  const [orphanCount, setOrphanCount] = useState(0);
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -34,14 +35,16 @@ export default function SiteAudit() {
 
   const loadData = async () => {
     try {
-      const [auditData, zonesData] = await Promise.all([
+      const [auditData, zonesData, assetsData] = await Promise.all([
         base44.entities.Audit.filter({ id: auditId }),
         base44.entities.Zone.filter({ audit_id: auditId }),
+        base44.entities.ElectricalAsset.filter({ audit_id: auditId }),
       ]);
       if (auditData.length) setAudit(auditData[0]);
       setZones(zonesData);
+      setOrphanCount(assetsData.filter(a => a.electrical_parent_tbc).length);
     } catch (e) {
-      toast.error('Failed to load audit data. Please try again.');
+      toast.error('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -55,12 +58,12 @@ export default function SiteAudit() {
     setSaving(true);
     if (isNew) {
       const created = await base44.entities.Audit.create(audit);
-      toast.success('Audit created');
+      toast.success('Installation created');
       navigate(`/audit/${created.id}`, { replace: true });
     } else {
       const { id, created_date, updated_date, created_by, ...updateData } = audit;
       await base44.entities.Audit.update(auditId, updateData);
-      toast.success('Audit saved');
+      toast.success('Installation saved');
     }
     setSaving(false);
   };
@@ -68,7 +71,7 @@ export default function SiteAudit() {
   const handleComplete = async () => {
     await base44.entities.Audit.update(auditId, { status: 'Completed' });
     setAudit({ ...audit, status: 'Completed' });
-    toast.success('Audit marked as completed');
+    toast.success('Installation marked as completed');
   };
 
   const handleAddZone = async () => {
@@ -97,18 +100,20 @@ export default function SiteAudit() {
       await base44.entities.Zone.delete(z.id);
     }
     await base44.entities.Audit.delete(auditId);
-    toast.success('Audit deleted');
+    toast.success('Installation deleted');
     navigate('/', { replace: true });
   };
 
   const handleRefresh = async () => {
     try {
-      const [auditData, zonesData] = await Promise.all([
+      const [auditData, zonesData, assetsData] = await Promise.all([
         base44.entities.Audit.filter({ id: auditId }),
         base44.entities.Zone.filter({ audit_id: auditId }),
+        base44.entities.ElectricalAsset.filter({ audit_id: auditId }),
       ]);
       if (auditData.length) setAudit(auditData[0]);
       setZones(zonesData);
+      setOrphanCount(assetsData.filter(a => a.electrical_parent_tbc).length);
     } catch (e) {
       toast.error('Refresh failed. Please try again.');
     }
@@ -152,7 +157,7 @@ export default function SiteAudit() {
 
       {/* Site Details Form */}
       <div className="bg-card rounded-xl border border-border p-5 space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">Site Details</h2>
+        <h2 className="text-lg font-semibold text-foreground">Installation Details</h2>
         <div className="space-y-3">
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Site Name *</label>
@@ -164,7 +169,7 @@ export default function SiteAudit() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Inspector *</label>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Technician / Inspector *</label>
               <Input value={audit.inspector_name} onChange={e => set('inspector_name', e.target.value)} />
             </div>
             <div>
@@ -176,7 +181,7 @@ export default function SiteAudit() {
         <div className="flex gap-2 pt-2">
           <Button onClick={handleSave} disabled={saving} className="flex-1">
             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            {isNew ? 'Create Audit' : 'Save Changes'}
+            {isNew ? 'Create Installation' : 'Save Changes'}
           </Button>
           {!isNew && audit.status === 'Draft' && (
             <Button variant="outline" onClick={handleComplete}>
@@ -191,7 +196,7 @@ export default function SiteAudit() {
       {!isNew && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">Zones ({zones.length})</h2>
+            <h2 className="text-lg font-semibold text-foreground">Zones / Areas ({zones.length})</h2>
             <Button size="sm" onClick={() => setZoneDialog(true)}>
               <Plus className="w-4 h-4 mr-1" />
               Add Zone
@@ -202,7 +207,7 @@ export default function SiteAudit() {
               <p className="text-sm text-muted-foreground mb-3">No zones added yet</p>
               <Button variant="outline" size="sm" onClick={() => setZoneDialog(true)}>
                 <Plus className="w-4 h-4 mr-1" />
-                Add First Zone
+                Add First Zone / Area
               </Button>
             </div>
           ) : (
@@ -213,11 +218,22 @@ export default function SiteAudit() {
             </div>
           )}
 
+          {/* Orphan TBC Alert */}
+          {orphanCount > 0 && (
+            <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">{orphanCount} unresolved electrical connection{orphanCount > 1 ? 's' : ''}</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">Some assets have "TBC / Unknown" electrical parents. Review before completing.</p>
+              </div>
+            </div>
+          )}
+
           {/* Delete Audit */}
           <div className="pt-4 border-t border-border">
             <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive min-h-[44px]" onClick={() => setDeleteAuditDialog(true)}>
               <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-              Delete Audit
+              Delete Installation
             </Button>
           </div>
         </div>
@@ -227,12 +243,12 @@ export default function SiteAudit() {
       <Dialog open={zoneDialog} onOpenChange={setZoneDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Zone</DialogTitle>
+            <DialogTitle>Add New Zone / Area</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Zone Name *</label>
-              <Input value={newZone.zone_name} onChange={e => setNewZone({ ...newZone, zone_name: e.target.value })} placeholder="e.g. Warehouse, Office, Rooftop" />
+              <Input value={newZone.zone_name} onChange={e => setNewZone({ ...newZone, zone_name: e.target.value })} placeholder="e.g. Ground Floor, Level 1, Rooftop, Basement" />
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Description</label>
@@ -250,9 +266,9 @@ export default function SiteAudit() {
       <AlertDialog open={deleteAuditDialog} onOpenChange={setDeleteAuditDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Audit?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Installation?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this audit and all its zones and equipment data. This cannot be undone.
+              This will permanently delete this installation record and all its zones and asset data. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
