@@ -47,22 +47,50 @@ const METER_COVERAGE = [
 
 export default function ElectricalAssetForm({ data, onChange, auditId, currentZoneId }) {
   const [allAssets, setAllAssets] = useState([]);
+  const [siteCode, setSiteCode] = useState('');
+  const [userEditedCode, setUserEditedCode] = useState(!!data?.display_code);
   const set = (key, val) => onChange({ ...data, [key]: val });
 
   useEffect(() => {
     if (auditId) {
-      base44.entities.ElectricalAsset.filter({ audit_id: auditId }).then(assets => {
-        setAllAssets(assets.filter(a => a.id !== data?.id)); // exclude self
+      Promise.all([
+        base44.entities.ElectricalAsset.filter({ audit_id: auditId }),
+        base44.entities.Audit.filter({ id: auditId }),
+      ]).then(([assets, audits]) => {
+        setAllAssets(assets.filter(a => a.id !== data?.id));
+        if (audits[0]?.site_name) {
+          // Derive site code: first letters of each word, max 6 chars, uppercase
+          const code = audits[0].site_name
+            .split(/\s+/)
+            .map(w => w[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 6);
+          setSiteCode(code);
+        }
       });
     }
   }, [auditId]);
 
-  // Build display code hint
-  const buildCodeHint = () => {
-    const parts = [];
-    if (data.asset_name) parts.push(data.asset_name);
-    return parts.length ? `Suggested: [SITE]-[ZONE]-${data.asset_name || 'NAME'}-[FED_FROM]` : '';
-  };
+  // Auto-generate display code from site code + asset name + parent name
+  // Only auto-update if user hasn't manually edited it
+  useEffect(() => {
+    if (userEditedCode) return;
+    const namePart = (data.asset_name || '').replace(/\s+/g, '').toUpperCase();
+    let parentPart = '';
+    if (data.electrical_parent_tbc) {
+      parentPart = 'TBC';
+    } else if (data.electrical_parent_id) {
+      const parent = allAssets.find(a => a.id === data.electrical_parent_id);
+      if (parent) {
+        parentPart = (parent.display_code || parent.asset_name || '').replace(/\s+/g, '').toUpperCase();
+      }
+    }
+    const parts = [siteCode, namePart, parentPart].filter(Boolean);
+    if (parts.length > 0) {
+      onChange({ ...data, display_code: parts.join('-') });
+    }
+  }, [siteCode, data.asset_name, data.electrical_parent_id, data.electrical_parent_tbc, userEditedCode]);
 
   const parentOptions = [
     { value: 'TBC', label: '— TBC / Unknown (to be confirmed) —' },
@@ -88,9 +116,6 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
       {/* Identity */}
       <div className="space-y-4">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Asset Identity</p>
-        <Field label="Asset Name *" hint="Short name, e.g. MSSB1, HVAC DB-1, MSB">
-          <Input value={data.asset_name || ''} onChange={e => set('asset_name', e.target.value)} placeholder="e.g. MSSB1" />
-        </Field>
         <Field label="Asset Type *">
           <MobileSelect
             value={data.asset_type || ''}
@@ -99,11 +124,21 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
             options={ASSET_TYPES}
           />
         </Field>
+        <Field label="Asset Name *" hint="Short name, e.g. MSSB1, HVAC DB-1, MSB">
+          <Input value={data.asset_name || ''} onChange={e => set('asset_name', e.target.value)} placeholder="e.g. MSSB1" />
+        </Field>
         <Field
           label="Display Code"
-          hint={buildCodeHint() || 'Human-readable reference, e.g. MELB-L01-MSSB1-MSB'}
+          hint="Auto-generated from site · asset name · electrical parent. Edit to override."
         >
-          <Input value={data.display_code || ''} onChange={e => set('display_code', e.target.value)} placeholder="SITE-ZONE-NAME-FEDFROM" />
+          <Input
+            value={data.display_code || ''}
+            onChange={e => {
+              setUserEditedCode(true);
+              set('display_code', e.target.value);
+            }}
+            placeholder="SITE-NAME-PARENT"
+          />
         </Field>
       </div>
 
