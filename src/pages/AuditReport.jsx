@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ArrowLeft, Layers, GitBranch, AlertTriangle, Zap, CircuitBoard, CheckCircle2, FileDown } from 'lucide-react';
+import TBCResolver from '@/components/TBCResolver';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -142,24 +143,13 @@ export default function AuditReport() {
         </div>
       </div>
 
-      {/* TBC Summary */}
+      {/* TBC Resolver */}
       {tbcAssets.length > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-600" />
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-              {tbcAssets.length} unresolved electrical connection{tbcAssets.length > 1 ? 's' : ''}
-            </p>
-          </div>
-          <div className="space-y-2">
-            {tbcAssets.map(a => (
-              <div key={a.id} className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
-                <CircuitBoard className="w-3.5 h-3.5 flex-shrink-0" />
-                <span><strong>{a.asset_name}</strong> ({a.asset_type}) — fed from unknown</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <TBCResolver
+          tbcAssets={tbcAssets}
+          allAssets={assets}
+          onResolved={loadData}
+        />
       )}
 
       {/* Tabs */}
