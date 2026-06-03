@@ -54,21 +54,17 @@ const METER_COVERAGE = [
   { value: 'Unknown', label: 'Unknown' },
 ];
 
-function MeterDeviceBlock({ meter, index, onChange, onRemove, allBoards, siteName, zoneName, assetName, existingCount, allMeterNames }) {
+function MeterDeviceBlock({ meter, index, onChange, onRemove, allBoards, siteName, zoneName, assetName, existingCount }) {
   const [expanded, setExpanded] = useState(true);
   const set = (key, val) => onChange({ ...meter, [key]: val });
 
-  // Auto-generate device name: SiteName - ZoneName - Type - N
+  // Auto-generate device name: SiteName - ZoneName - AssetType + suffix
   useEffect(() => {
     if (meter.device_name) return;
     const base = [siteName, zoneName, meter.meter_device_type || 'Device'].filter(Boolean).join(' - ');
-    const name = `${base} ${index + 1}`;
+    const name = index === 0 ? base : `${base} ${index + 1}`;
     onChange({ ...meter, device_name: name });
   }, [siteName, zoneName, meter.meter_device_type]);
-
-  // Check if this device's name duplicates another device in the list
-  const isDuplicateName = meter.device_name &&
-    allMeterNames.filter(n => n === meter.device_name).length > 1;
 
   const handleWWChange = (updatedData) => {
     onChange({
@@ -117,17 +113,7 @@ function MeterDeviceBlock({ meter, index, onChange, onRemove, allBoards, siteNam
       {expanded && (
         <div className="p-4 space-y-4">
           <Field label="Device Name" hint="Auto-generated from site/zone/type. Edit to override.">
-            <Input
-              value={meter.device_name || ''}
-              onChange={e => set('device_name', e.target.value)}
-              placeholder="e.g. Acme HQ - Level 1 - A3RM Auditor 1"
-              className={isDuplicateName ? 'border-amber-400 focus-visible:ring-amber-400' : ''}
-            />
-            {isDuplicateName && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                ⚠ Duplicate name — another device has the same name. Please rename this one.
-              </p>
-            )}
+            <Input value={meter.device_name || ''} onChange={e => set('device_name', e.target.value)} placeholder="e.g. Acme HQ - Level 1 - A3RM Auditor" />
           </Field>
 
           <Field label="Device Type">
@@ -325,7 +311,6 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
                 zoneName={zoneName}
                 assetName={data.asset_name}
                 existingCount={meters.length}
-                allMeterNames={meters.map(m => m.device_name).filter(Boolean)}
               />
             ))}
             <Button type="button" variant="outline" size="sm" onClick={addMeter} className="w-full gap-2">
