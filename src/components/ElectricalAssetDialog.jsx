@@ -29,7 +29,7 @@ export default function ElectricalAssetDialog({ open, onClose, initialData, zone
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit' : 'Add'} Electrical Asset</DialogTitle>
+          <DialogTitle>{isEdit ? 'Edit' : 'Add'} Electrical Board</DialogTitle>
         </DialogHeader>
         <ElectricalAssetForm
           data={data}
@@ -41,7 +41,7 @@ export default function ElectricalAssetDialog({ open, onClose, initialData, zone
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {isEdit ? 'Update' : 'Save Asset'}
+            {isEdit ? 'Update' : 'Save Board'}
           </Button>
         </DialogFooter>
       </DialogContent>

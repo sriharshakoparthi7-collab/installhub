@@ -2,21 +2,15 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import MobileSelect from './MobileSelect';
-import PhotoUpload from './PhotoUpload';
-import MultiPhotoUpload from './MultiPhotoUpload';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Info, Plus, Trash2 } from 'lucide-react';
+import { Info, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import MobileSelect from './MobileSelect';
+import PhotoUpload from './PhotoUpload';
+import MultiPhotoUpload from './MultiPhotoUpload';
 import WattwatcherA3RMForm from './WattwatcherA3RMForm';
 import WattwatcherA6MForm from './WattwatcherA6MForm';
-
-const CHANNEL_OPTIONS = [
-  { value: 'Channel 1', label: 'Channel 1' },
-  { value: 'Channel 2', label: 'Channel 2' },
-  { value: 'Channel 3', label: 'Channel 3' },
-];
 
 function Field({ label, hint, children }) {
   return (
@@ -60,9 +54,118 @@ const METER_COVERAGE = [
   { value: 'Unknown', label: 'Unknown' },
 ];
 
+function MeterDeviceBlock({ meter, index, onChange, onRemove, allBoards, siteName, zoneName, assetName, existingCount }) {
+  const [expanded, setExpanded] = useState(true);
+  const set = (key, val) => onChange({ ...meter, [key]: val });
+
+  // Auto-generate device name: SiteName - ZoneName - AssetType + suffix
+  useEffect(() => {
+    if (meter.device_name) return;
+    const base = [siteName, zoneName, meter.meter_device_type || 'Device'].filter(Boolean).join(' - ');
+    const name = index === 0 ? base : `${base} ${index + 1}`;
+    onChange({ ...meter, device_name: name });
+  }, [siteName, zoneName, meter.meter_device_type]);
+
+  const handleWWChange = (updatedData) => {
+    onChange({
+      ...meter,
+      ww_prestart: updatedData.ww_prestart,
+      ww_switchboard: updatedData.ww_switchboard,
+      ww_channels: updatedData.ww_channels,
+      ww_verification: updatedData.ww_verification,
+      ww_commissioning: updatedData.ww_commissioning,
+      ww_photos: updatedData.ww_photos,
+    });
+  };
+
+  // Build a fake "data" shape for ww forms
+  const wwData = {
+    ww_prestart: meter.ww_prestart,
+    ww_switchboard: meter.ww_switchboard,
+    ww_channels: meter.ww_channels,
+    ww_verification: meter.ww_verification,
+    ww_commissioning: meter.ww_commissioning,
+    ww_photos: meter.ww_photos,
+  };
+
+  return (
+    <div className="border border-border rounded-xl overflow-hidden">
+      <div
+        className="flex items-center justify-between px-4 py-3 bg-muted/40 cursor-pointer"
+        onClick={() => setExpanded(e => !e)}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-foreground">
+            Device {index + 1}: {meter.device_name || '(unnamed)'}
+          </span>
+          {meter.meter_device_type && (
+            <span className="text-xs text-muted-foreground bg-background border border-border rounded px-1.5 py-0.5">{meter.meter_device_type}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={e => { e.stopPropagation(); onRemove(); }} className="text-destructive hover:opacity-70 p-1">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+          {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="p-4 space-y-4">
+          <Field label="Device Name" hint="Auto-generated from site/zone/type. Edit to override.">
+            <Input value={meter.device_name || ''} onChange={e => set('device_name', e.target.value)} placeholder="e.g. Acme HQ - Level 1 - A3RM Auditor" />
+          </Field>
+
+          <Field label="Device Type">
+            <MobileSelect
+              value={meter.meter_device_type || ''}
+              onValueChange={v => set('meter_device_type', v)}
+              placeholder="Select device type..."
+              options={METER_DEVICE_TYPES}
+            />
+          </Field>
+
+          {meter.meter_device_type === 'A3RM Auditor' && (
+            <div className="space-y-2">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                <p className="text-xs font-semibold text-primary">SW MaaS — A3RM Auditor Installation Form</p>
+              </div>
+              <WattwatcherA3RMForm data={wwData} onChange={handleWWChange} />
+            </div>
+          )}
+
+          {meter.meter_device_type === 'A6M Auditor' && (
+            <div className="space-y-2">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                <p className="text-xs font-semibold text-primary">A6M Auditor Installation Form</p>
+              </div>
+              <WattwatcherA6MForm data={wwData} onChange={handleWWChange} />
+            </div>
+          )}
+
+          {meter.meter_device_type === 'Other Meter' && (
+            <div className="space-y-4">
+              <Field label="Meter Device ID / Serial">
+                <Input value={meter.meter_device_id || ''} onChange={e => set('meter_device_id', e.target.value)} placeholder="e.g. D001" />
+              </Field>
+              <Field label="Meter Classification">
+                <MobileSelect value={meter.meter_classification || ''} onValueChange={v => set('meter_classification', v)} placeholder="Select classification" options={METER_CLASSIFICATIONS} />
+              </Field>
+              <Field label="Coverage Type">
+                <MobileSelect value={meter.meter_coverage_type || ''} onValueChange={v => set('meter_coverage_type', v)} placeholder="Select coverage" options={METER_COVERAGE} />
+              </Field>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ElectricalAssetForm({ data, onChange, auditId, currentZoneId }) {
   const [allAssets, setAllAssets] = useState([]);
   const [siteCode, setSiteCode] = useState('');
+  const [siteName, setSiteName] = useState('');
   const [zoneName, setZoneName] = useState('');
   const [userEditedCode, setUserEditedCode] = useState(!!data?.display_code);
   const set = (key, val) => onChange({ ...data, [key]: val });
@@ -76,29 +179,18 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
       ]).then(([assets, audits, zones]) => {
         setAllAssets(assets.filter(a => a.id !== data?.id));
         if (audits[0]?.site_name) {
-          const code = audits[0].site_name
-            .split(/\s+/)
-            .map(w => w[0])
-            .join('')
-            .toUpperCase()
-            .substring(0, 6);
+          setSiteName(audits[0].site_name);
+          const code = audits[0].site_name.split(/\s+/).map(w => w[0]).join('').toUpperCase().substring(0, 6);
           setSiteCode(code);
         }
         if (zones[0]?.zone_name) {
-          // Use first word or abbreviation of zone name
-          const zCode = zones[0].zone_name
-            .split(/\s+/)
-            .map(w => w[0])
-            .join('')
-            .toUpperCase()
-            .substring(0, 4);
-          setZoneName(zCode);
+          setZoneName(zones[0].zone_name);
         }
       });
     }
   }, [auditId, currentZoneId]);
 
-  // Auto-generate display code: [SiteCode]-[Zone]-[EquipName]-[ElecParent]
+  // Auto-generate display code
   useEffect(() => {
     if (userEditedCode) return;
     const equipPart = (data.asset_name || '').replace(/\s+/g, '').toUpperCase();
@@ -107,61 +199,46 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
       parentPart = 'TBC';
     } else if (data.electrical_parent_id) {
       const parent = allAssets.find(a => a.id === data.electrical_parent_id);
-      if (parent) {
-        parentPart = (parent.asset_name || '').replace(/\s+/g, '').toUpperCase();
-      }
+      if (parent) parentPart = (parent.asset_name || '').replace(/\s+/g, '').toUpperCase();
     }
-    const parts = [siteCode, zoneName, equipPart, parentPart].filter(Boolean);
-    if (parts.length > 0) {
-      onChange({ ...data, display_code: parts.join('-') });
-    }
-  }, [siteCode, zoneName, data.asset_name, data.electrical_parent_id, data.electrical_parent_tbc, userEditedCode]);
+    const parts = [siteCode, equipPart, parentPart].filter(Boolean);
+    if (parts.length > 0) onChange({ ...data, display_code: parts.join('-') });
+  }, [siteCode, data.asset_name, data.electrical_parent_id, data.electrical_parent_tbc, userEditedCode]);
 
   const parentOptions = [
     { value: 'TBC', label: '— TBC / Unknown (to be confirmed) —' },
-    ...allAssets.map(a => ({
-      value: a.id,
-      label: a.display_code || a.asset_name,
-    })),
+    ...allAssets.map(a => ({ value: a.id, label: a.display_code || a.asset_name })),
   ];
 
   const handleParentChange = (val) => {
-    if (val === 'TBC') {
-      onChange({ ...data, electrical_parent_id: '', electrical_parent_tbc: true });
-    } else {
-      onChange({ ...data, electrical_parent_id: val, electrical_parent_tbc: false });
-    }
+    if (val === 'TBC') onChange({ ...data, electrical_parent_id: '', electrical_parent_tbc: true });
+    else onChange({ ...data, electrical_parent_id: val, electrical_parent_tbc: false });
   };
 
   const currentParentValue = data.electrical_parent_tbc ? 'TBC' : (data.electrical_parent_id || '');
+
+  // Multi-meter management
+  const meters = data.meters || [];
+  const addMeter = () => set('meters', [...meters, {}]);
+  const removeMeter = (i) => set('meters', meters.filter((_, idx) => idx !== i));
+  const updateMeter = (i, updated) => set('meters', meters.map((m, idx) => idx === i ? updated : m));
 
   return (
     <div className="space-y-5">
       {/* Identity */}
       <div className="space-y-4">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Asset Identity</p>
-        <Field label="Asset Type *">
-          <MobileSelect
-            value={data.asset_type || ''}
-            onValueChange={v => set('asset_type', v)}
-            placeholder="Select type"
-            options={ASSET_TYPES}
-          />
-        </Field>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Board Identity</p>
         <Field label="Equipment Name *" hint="Short name, e.g. MSSB1, HVAC DB-1, MSB">
-          <Input value={data.asset_name || ''} onChange={e => set('asset_name', e.target.value)} placeholder="e.g. MSSB1" />
+          <Input value={data.asset_name || ''} onChange={e => set('asset_name', e.target.value)} placeholder="e.g. MSB" />
         </Field>
-        <Field
-          label="Display Code"
-          hint="Format: [Site Code] - [Zone] - [Equipment Name] - [Electrical Parent]. Auto-generated — edit to override."
-        >
+        <Field label="Asset Type *">
+          <MobileSelect value={data.asset_type || ''} onValueChange={v => set('asset_type', v)} placeholder="Select type" options={ASSET_TYPES} />
+        </Field>
+        <Field label="Display Code" hint="Auto-generated — edit to override.">
           <Input
             value={data.display_code || ''}
-            onChange={e => {
-              setUserEditedCode(true);
-              set('display_code', e.target.value);
-            }}
-            placeholder="SITE-ZONE-EQUIPNAME-PARENT"
+            onChange={e => { setUserEditedCode(true); set('display_code', e.target.value); }}
+            placeholder="SITE-EQUIPNAME-PARENT"
             className="font-mono text-sm"
           />
         </Field>
@@ -181,32 +258,22 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Electrical Hierarchy</p>
         <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3 flex gap-2">
           <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-blue-700 dark:text-blue-300">Select the board that electrically feeds this asset. Use TBC if unknown.</p>
+          <p className="text-xs text-blue-700 dark:text-blue-300">Select the board that electrically feeds this board. Use TBC if unknown.</p>
         </div>
         <Field label="Fed From (Electrical Parent)">
-          <MobileSelect
-            value={currentParentValue}
-            onValueChange={handleParentChange}
-            placeholder="Select electrical source..."
-            options={parentOptions}
-          />
+          <MobileSelect value={currentParentValue} onValueChange={handleParentChange} placeholder="Select electrical source..." options={parentOptions} />
         </Field>
         {data.electrical_parent_tbc && (
           <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-            Marked as TBC — you can resolve this in the reconciliation screen before completing.
+            Marked as TBC — resolve in the reconciliation screen before completing.
           </div>
         )}
         <Field label="Phase">
-          <MobileSelect
-            value={data.phase || ''}
-            onValueChange={v => set('phase', v)}
-            placeholder="Select phase"
-            options={[
-              { value: 'Single Phase', label: 'Single Phase' },
-              { value: 'Three Phase', label: 'Three Phase' },
-              { value: 'Unknown', label: 'Unknown' },
-            ]}
-          />
+          <MobileSelect value={data.phase || ''} onValueChange={v => set('phase', v)} placeholder="Select phase" options={[
+            { value: 'Single Phase', label: 'Single Phase' },
+            { value: 'Three Phase', label: 'Three Phase' },
+            { value: 'Unknown', label: 'Unknown' },
+          ]} />
         </Field>
         <Field label="Amperage Rating (A)">
           <Input value={data.amperage_rating || ''} onChange={e => set('amperage_rating', e.target.value)} placeholder="e.g. 400A" />
@@ -219,147 +286,36 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
         </Field>
       </div>
 
-      {/* Metering / Device */}
+      {/* Metering / Devices */}
       <div className="space-y-4">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Metering / Device</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Metering / Devices</p>
         <div className="flex items-center gap-3">
-          <Switch
-            id="meter_present"
-            checked={!!data.meter_present}
-            onCheckedChange={v => set('meter_present', v)}
-          />
+          <Switch id="meter_present" checked={!!data.meter_present} onCheckedChange={v => {
+            if (!v) set('meters', []);
+            set('meter_present', v);
+          }} />
           <Label htmlFor="meter_present" className="text-sm font-medium">Metering / Device Present</Label>
         </div>
 
         {data.meter_present && (
-          <div className="space-y-4 pl-3 border-l-2 border-primary/30">
-            <Field label="Device Type">
-              <MobileSelect
-                value={data.meter_device_type || ''}
-                onValueChange={v => set('meter_device_type', v)}
-                placeholder="Select device type..."
-                options={METER_DEVICE_TYPES}
+          <div className="space-y-4">
+            {meters.map((meter, i) => (
+              <MeterDeviceBlock
+                key={i}
+                meter={meter}
+                index={i}
+                onChange={(updated) => updateMeter(i, updated)}
+                onRemove={() => removeMeter(i)}
+                allBoards={allAssets}
+                siteName={siteName}
+                zoneName={zoneName}
+                assetName={data.asset_name}
+                existingCount={meters.length}
               />
-            </Field>
-
-            {/* Switchboard & Channels — shown for all device types */}
-            <Field label="Switchboard (where device is installed)">
-              <MobileSelect
-                value={data.meter_switchboard_tbc ? 'TBC' : (data.meter_switchboard_id || '')}
-                onValueChange={v => {
-                  if (v === 'TBC') {
-                    onChange({ ...data, meter_switchboard_id: '', meter_switchboard_tbc: true });
-                  } else {
-                    onChange({ ...data, meter_switchboard_id: v, meter_switchboard_tbc: false });
-                  }
-                }}
-                placeholder="Select switchboard..."
-                options={[
-                  { value: 'TBC', label: '— TBC / Unknown —' },
-                  ...allAssets.map(a => ({ value: a.id, label: a.display_code || a.asset_name })),
-                ]}
-              />
-            </Field>
-            {data.meter_switchboard_tbc && (
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                Switchboard marked as TBC.
-              </div>
-            )}
-
-            {/* Channels */}
-            {(() => {
-              const channels = data.meter_channels || [];
-              const addChannel = () => {
-                if (channels.length >= 3) return;
-                set('meter_channels', [...channels, { channel: '', description: '' }]);
-              };
-              const removeChannel = (i) => set('meter_channels', channels.filter((_, idx) => idx !== i));
-              const updateChannel = (i, field, val) => {
-                const updated = channels.map((ch, idx) => idx === i ? { ...ch, [field]: val } : ch);
-                set('meter_channels', updated);
-              };
-              return (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-foreground">Channels (max 3)</label>
-                    {channels.length < 3 && (
-                      <Button type="button" size="sm" variant="outline" onClick={addChannel} className="h-7 text-xs gap-1">
-                        <Plus className="w-3 h-3" /> Add Channel
-                      </Button>
-                    )}
-                  </div>
-                  {channels.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">No channels added yet.</p>
-                  )}
-                  {channels.map((ch, i) => (
-                    <div key={i} className="bg-muted/40 rounded-lg p-3 space-y-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold text-foreground">Channel {i + 1}</span>
-                        <button type="button" onClick={() => removeChannel(i)} className="text-destructive hover:opacity-70">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      <MobileSelect
-                        value={ch.channel || ''}
-                        onValueChange={v => updateChannel(i, 'channel', v)}
-                        placeholder="Select channel..."
-                        options={CHANNEL_OPTIONS.filter(opt =>
-                          opt.value === ch.channel || !channels.some((c, ci) => ci !== i && c.channel === opt.value)
-                        )}
-                      />
-                      <Input
-                        value={ch.description || ''}
-                        onChange={e => updateChannel(i, 'description', e.target.value)}
-                        placeholder="Channel description / circuit name..."
-                        className="text-sm"
-                      />
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {data.meter_device_type === 'A3RM Auditor' && (
-              <div className="space-y-2">
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                  <p className="text-xs font-semibold text-primary">SW MaaS — A3RM Auditor Installation Form</p>
-                </div>
-                <WattwatcherA3RMForm data={data} onChange={onChange} />
-              </div>
-            )}
-
-            {data.meter_device_type === 'A6M Auditor' && (
-              <div className="space-y-2">
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                  <p className="text-xs font-semibold text-primary">A6M Auditor Installation Form</p>
-                </div>
-                <WattwatcherA6MForm data={data} onChange={onChange} />
-              </div>
-            )}
-
-            {data.meter_device_type === 'Other Meter' && (
-              <div className="space-y-4">
-                <Field label="Meter Device ID / Serial">
-                  <Input value={data.meter_device_id || ''} onChange={e => set('meter_device_id', e.target.value)} placeholder="e.g. D001, D004" />
-                </Field>
-                <Field label="Meter Classification">
-                  <MobileSelect
-                    value={data.meter_classification || ''}
-                    onValueChange={v => set('meter_classification', v)}
-                    placeholder="Select classification"
-                    options={METER_CLASSIFICATIONS}
-                  />
-                </Field>
-                <Field label="Coverage Type" hint="Does this meter capture the entire board load, or a specific circuit?">
-                  <MobileSelect
-                    value={data.meter_coverage_type || ''}
-                    onValueChange={v => set('meter_coverage_type', v)}
-                    placeholder="Select coverage"
-                    options={METER_COVERAGE}
-                  />
-                </Field>
-              </div>
-            )}
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={addMeter} className="w-full gap-2">
+              <Plus className="w-4 h-4" /> Add Device / Meter
+            </Button>
           </div>
         )}
       </div>

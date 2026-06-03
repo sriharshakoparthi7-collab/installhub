@@ -16,7 +16,7 @@
     },
     "display_code": {
       "type": "string",
-      "title": "Display Code (e.g. SITE-LEVEL-EQUIPNAME-PARENT)"
+      "title": "Display Code"
     },
     "asset_type": {
       "type": "string",
@@ -78,60 +78,47 @@
       "title": "Metering / Device Present",
       "default": false
     },
-    "meter_device_type": {
-      "type": "string",
-      "title": "Device Type",
-      "enum": [
-        "A3RM Auditor",
-        "A6M Auditor",
-        "Other Meter"
-      ]
-    },
-    "meter_device_id": {
-      "type": "string",
-      "title": "Meter Device ID / Serial"
-    },
-    "meter_classification": {
-      "type": "string",
-      "title": "Meter Classification",
-      "enum": [
-        "Utility / Gate Meter",
-        "Sub-meter",
-        "Check Meter",
-        "Solar / Generation Meter",
-        "Other"
-      ]
-    },
-    "meter_coverage_type": {
-      "type": "string",
-      "title": "Meter Coverage Type",
-      "enum": [
-        "Entire Board Load",
-        "Specific Outgoing Circuit",
-        "Multiple Circuits",
-        "Unknown"
-      ]
-    },
-    "meter_switchboard_id": {
-      "type": "string",
-      "title": "Meter Switchboard (Board where device is installed)"
-    },
-    "meter_switchboard_tbc": {
-      "type": "boolean",
-      "title": "Meter Switchboard TBC",
-      "default": false
-    },
-    "meter_channels": {
+    "meters": {
       "type": "array",
-      "title": "Meter Channels (max 3)",
+      "title": "Meters / Devices",
       "items": {
         "type": "object",
         "properties": {
-          "channel": {
+          "device_name": {
             "type": "string"
           },
-          "description": {
+          "meter_device_type": {
             "type": "string"
+          },
+          "meter_device_id": {
+            "type": "string"
+          },
+          "meter_classification": {
+            "type": "string"
+          },
+          "meter_coverage_type": {
+            "type": "string"
+          },
+          "ww_prestart": {
+            "type": "object"
+          },
+          "ww_switchboard": {
+            "type": "object"
+          },
+          "ww_channels": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "ww_verification": {
+            "type": "object"
+          },
+          "ww_commissioning": {
+            "type": "object"
+          },
+          "ww_photos": {
+            "type": "object"
           }
         }
       }
@@ -143,33 +130,6 @@
     "comments": {
       "type": "string",
       "title": "Comments"
-    },
-    "ww_prestart": {
-      "type": "object",
-      "title": "Pre-start Information"
-    },
-    "ww_switchboard": {
-      "type": "object",
-      "title": "Switchboard & Device Details"
-    },
-    "ww_channels": {
-      "type": "array",
-      "items": {
-        "type": "object"
-      },
-      "title": "Channel Configuration"
-    },
-    "ww_verification": {
-      "type": "object",
-      "title": "App Verification & Measurements"
-    },
-    "ww_commissioning": {
-      "type": "object",
-      "title": "Commissioning"
-    },
-    "ww_photos": {
-      "type": "object",
-      "title": "Installation Photos"
     }
   },
   "required": [

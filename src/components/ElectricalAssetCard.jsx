@@ -1,4 +1,4 @@
-import { CircuitBoard, Zap, AlertTriangle, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { CircuitBoard, Zap, AlertTriangle, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -66,23 +66,16 @@ export default function ElectricalAssetCard({ asset, allAssets = [], onEdit, onD
         )}
       </div>
 
-      {/* Wattwatcher / Meter chips */}
-      {(asset.has_wattwatcher || asset.meter_present) && (
+      {/* Meter chips */}
+      {asset.meter_present && asset.meters?.length > 0 && (
         <div className="flex flex-wrap gap-2 pt-1">
-          {asset.has_wattwatcher && asset.wattwatcher_device_id && (
-            <div className="flex items-center gap-1.5 bg-primary/5 border border-primary/20 rounded-md px-2 py-1">
+          {asset.meters.map((m, i) => (
+            <div key={i} className="flex items-center gap-1.5 bg-primary/5 border border-primary/20 rounded-md px-2 py-1">
               <Zap className="w-3 h-3 text-primary" />
-              <span className="text-[11px] font-medium text-primary">{asset.wattwatcher_device_id}</span>
-              {asset.wattwatcher_model && <span className="text-[11px] text-muted-foreground">· {asset.wattwatcher_model}</span>}
+              <span className="text-[11px] font-medium text-primary">{m.device_name || m.meter_device_type || `Device ${i + 1}`}</span>
+              {m.meter_device_type && <span className="text-[11px] text-muted-foreground">· {m.meter_device_type}</span>}
             </div>
-          )}
-          {asset.meter_present && asset.meter_device_id && (
-            <div className="flex items-center gap-1.5 bg-accent/10 border border-accent/20 rounded-md px-2 py-1">
-              <CheckCircle2 className="w-3 h-3 text-accent" />
-              <span className="text-[11px] font-medium text-foreground">{asset.meter_device_id}</span>
-              {asset.meter_classification && <span className="text-[11px] text-muted-foreground">· {asset.meter_classification}</span>}
-            </div>
-          )}
+          ))}
         </div>
       )}
     </div>

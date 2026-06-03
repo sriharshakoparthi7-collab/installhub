@@ -37,6 +37,9 @@ const CHANNEL_OPTIONS = [
   { value: 'Channel 1', label: 'Channel 1' },
   { value: 'Channel 2', label: 'Channel 2' },
   { value: 'Channel 3', label: 'Channel 3' },
+  { value: 'Channel 4', label: 'Channel 4' },
+  { value: 'Channel 5', label: 'Channel 5' },
+  { value: 'Channel 6', label: 'Channel 6' },
 ];
 
 export default function SiteAssetForm({ data, onChange, auditId, currentZoneId }) {
