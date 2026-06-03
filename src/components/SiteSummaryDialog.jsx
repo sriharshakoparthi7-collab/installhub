@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Loader2, CircuitBoard, Cpu, Zap, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 
 function SectionHeader({ title }) {
@@ -188,9 +189,30 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
   const boardsWithDevices = boards.filter(b => b.meter_present && (b.meters || []).length > 0);
   const totalDevices = boards.reduce((acc, b) => acc + (b.meters || []).length, 0);
 
+  // Build flat rows for devices table
+  const deviceRows = [];
+  boards.forEach(board => {
+    (board.meters || []).forEach(meter => {
+      const parent = boards.find(b => b.id === board.electrical_parent_id);
+      const fedFrom = board.electrical_parent_tbc ? 'TBC'
+        : board.electrical_parent_id === 'GRID' ? 'Grid'
+        : parent ? (parent.display_code || parent.asset_name) : '—';
+      deviceRows.push({
+        device_number: meter.device_number || '—',
+        device_name: meter.device_name || `Device ${board.meters.indexOf(meter) + 1}`,
+        device_type: meter.meter_device_type || '—',
+        client_name: audit?.client_name || '—',
+        site_name: audit?.site_name || '—',
+        asset_type: board.asset_type || '—',
+        display_code: board.display_code || board.asset_name || '—',
+        fed_from: fedFrom,
+      });
+    });
+  });
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Site Summary — {audit?.site_name}</DialogTitle>
         </DialogHeader>
@@ -200,6 +222,50 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : (
+          <Tabs defaultValue="overview">
+            <TabsList className="w-full mb-3">
+              <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
+              <TabsTrigger value="devices" className="flex-1">Devices Table</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="devices">
+              {deviceRows.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-8">No devices recorded yet.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/50 border-b border-border">
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Device No.</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Device Name</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Device Type</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Client</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Site</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Asset Type</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Display Code</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Fed From</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deviceRows.map((row, i) => (
+                        <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/20">
+                          <td className="px-3 py-2 font-mono font-semibold text-primary">{row.device_number}</td>
+                          <td className="px-3 py-2 text-foreground">{row.device_name}</td>
+                          <td className="px-3 py-2"><Badge variant="outline" className="text-[10px]">{row.device_type}</Badge></td>
+                          <td className="px-3 py-2 text-foreground">{row.client_name}</td>
+                          <td className="px-3 py-2 text-foreground">{row.site_name}</td>
+                          <td className="px-3 py-2 text-foreground">{row.asset_type}</td>
+                          <td className="px-3 py-2 font-mono text-foreground">{row.display_code}</td>
+                          <td className="px-3 py-2 text-foreground">{row.fed_from}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="overview">
           <div className="space-y-2 text-sm">
             {/* Audit info */}
             <div className="bg-muted/30 rounded-lg p-3 space-y-1">
@@ -268,6 +334,8 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
               <p className="text-center text-xs text-muted-foreground py-6">No zones or assets recorded yet.</p>
             )}
           </div>
+            </TabsContent>
+          </Tabs>
         )}
       </DialogContent>
     </Dialog>
