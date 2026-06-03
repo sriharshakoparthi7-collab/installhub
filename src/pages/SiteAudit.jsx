@@ -19,7 +19,7 @@ export default function SiteAudit() {
   const isNew = auditId === 'new';
 
   const [audit, setAudit] = useState({
-    site_name: '', site_address: '', inspector_name: '',
+    client_name: '', site_name: '', site_address: '', inspector_name: '',
     audit_date: new Date().toISOString().split('T')[0], status: 'Draft',
   });
   const [orphanCount, setOrphanCount] = useState(0);
@@ -53,7 +53,7 @@ export default function SiteAudit() {
   };
 
   const handleSave = async () => {
-    if (!audit.site_name || !audit.site_address || !audit.inspector_name) {
+    if (!audit.client_name || !audit.site_name || !audit.site_address || !audit.inspector_name) {
       toast.error('Please fill all required fields');
       return;
     }
@@ -175,9 +175,15 @@ export default function SiteAudit() {
       <div className="bg-card rounded-xl border border-border p-5 space-y-4">
         <h2 className="text-lg font-semibold text-foreground">Installation Details</h2>
         <div className="space-y-3">
-          <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Site Name *</label>
-            <Input value={audit.site_name} onChange={e => set('site_name', e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Client Name *</label>
+              <Input value={audit.client_name} onChange={e => set('client_name', e.target.value)} placeholder="e.g. Acme Corp" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Site Name *</label>
+              <Input value={audit.site_name} onChange={e => set('site_name', e.target.value)} placeholder="e.g. Head Office" />
+            </div>
           </div>
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Site Address *</label>

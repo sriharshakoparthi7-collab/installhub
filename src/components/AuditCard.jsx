@@ -22,7 +22,7 @@ export default function AuditCard({ audit, onDelete }) {
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                {audit.site_name}
+                {audit.client_name ? `${audit.client_name} — ${audit.site_name}` : audit.site_name}
               </h3>
               <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
                 <MapPin className="w-3 h-3 flex-shrink-0" />
@@ -68,7 +68,7 @@ export default function AuditCard({ audit, onDelete }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Installation?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{audit.site_name}</strong>? This cannot be undone.
+              Are you sure you want to delete <strong>{audit.client_name ? `${audit.client_name} — ${audit.site_name}` : audit.site_name}</strong>? This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

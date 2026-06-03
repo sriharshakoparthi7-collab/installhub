@@ -33,6 +33,7 @@ export default function Dashboard() {
   };
 
   const filtered = audits.filter(a =>
+    a.client_name?.toLowerCase().includes(search.toLowerCase()) ||
     a.site_name?.toLowerCase().includes(search.toLowerCase()) ||
     a.inspector_name?.toLowerCase().includes(search.toLowerCase())
   );

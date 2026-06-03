@@ -203,7 +203,8 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
           <div className="space-y-2 text-sm">
             {/* Audit info */}
             <div className="bg-muted/30 rounded-lg p-3 space-y-1">
-              <Row label="Site" value={audit?.site_name} />
+              <Row label="Client" value={audit?.client_name} />
+            <Row label="Site" value={audit?.site_name} />
               <Row label="Address" value={audit?.site_address} />
               <Row label="Technician" value={audit?.inspector_name} />
               <Row label="Date" value={audit?.audit_date} />
