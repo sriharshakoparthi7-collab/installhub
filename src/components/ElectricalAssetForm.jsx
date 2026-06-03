@@ -58,11 +58,11 @@ function MeterDeviceBlock({ meter, index, onChange, onRemove, allBoards, siteNam
   const [expanded, setExpanded] = useState(true);
   const set = (key, val) => onChange({ ...meter, [key]: val });
 
-  // Auto-generate device name: SiteName - ZoneName - AssetType + suffix
+  // Auto-generate device name: SiteName - ZoneName - DeviceType - N
   useEffect(() => {
     if (meter.device_name) return;
     const base = [siteName, zoneName, meter.meter_device_type || 'Device'].filter(Boolean).join(' - ');
-    const name = index === 0 ? base : `${base} ${index + 1}`;
+    const name = `${base} ${index + 1}`;
     onChange({ ...meter, device_name: name });
   }, [siteName, zoneName, meter.meter_device_type]);
 
