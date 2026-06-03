@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, Save, Loader2, CheckCircle, FileText, Trash2, AlertTriangle, Download } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Loader2, CheckCircle, FileText, Trash2, AlertTriangle, Download, LayoutList } from 'lucide-react';
 import { toast } from 'sonner';
 import ZoneCard from '../components/ZoneCard';
+import SiteSummaryDialog from '../components/SiteSummaryDialog';
 import PullToRefresh from '../components/PullToRefresh';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -28,6 +29,7 @@ export default function SiteAudit() {
   const [zoneDialog, setZoneDialog] = useState(false);
   const [newZone, setNewZone] = useState({ zone_name: '', zone_description: '' });
   const [deleteAuditDialog, setDeleteAuditDialog] = useState(false);
+  const [summaryDialog, setSummaryDialog] = useState(false);
 
   useEffect(() => {
     if (!isNew) loadData();
@@ -139,6 +141,12 @@ export default function SiteAudit() {
           Back
         </button>
         <div className="flex items-center gap-2">
+          {!isNew && (
+            <Button variant="outline" size="sm" onClick={() => setSummaryDialog(true)}>
+              <LayoutList className="w-3.5 h-3.5 mr-1.5" />
+              Summary
+            </Button>
+          )}
           {!isNew && (
             <Link to={`/audit/${auditId}/wattmapper-report`}>
               <Button variant="outline" size="sm">
@@ -269,6 +277,8 @@ export default function SiteAudit() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SiteSummaryDialog open={summaryDialog} onClose={() => setSummaryDialog(false)} auditId={auditId} audit={audit} />
 
       {/* Delete Audit Confirmation */}
       <AlertDialog open={deleteAuditDialog} onOpenChange={setDeleteAuditDialog}>
