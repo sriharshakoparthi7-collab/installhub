@@ -116,6 +116,10 @@ function MeterDeviceBlock({ meter, index, onChange, onRemove, allBoards, siteNam
             <Input value={meter.device_name || ''} onChange={e => set('device_name', e.target.value)} placeholder="e.g. Acme HQ - Level 1 - A3RM Auditor" />
           </Field>
 
+          <Field label="Device Number" hint="Unique identifier or tag number for this device (e.g. D001, M-02).">
+            <Input value={meter.device_number || ''} onChange={e => set('device_number', e.target.value)} placeholder="e.g. D001" />
+          </Field>
+
           <Field label="Device Type">
             <MobileSelect
               value={meter.meter_device_type || ''}
