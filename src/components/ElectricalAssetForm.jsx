@@ -164,7 +164,6 @@ function MeterDeviceBlock({ meter, index, onChange, onRemove, allBoards, siteNam
 
 export default function ElectricalAssetForm({ data, onChange, auditId, currentZoneId }) {
   const [allAssets, setAllAssets] = useState([]);
-  const [siteCode, setSiteCode] = useState('');
   const [siteName, setSiteName] = useState('');
   const [zoneName, setZoneName] = useState('');
   const [userEditedCode, setUserEditedCode] = useState(!!data?.display_code);
@@ -179,10 +178,7 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
       ]).then(([assets, audits, zones]) => {
         setAllAssets(assets.filter(a => a.id !== data?.id));
         if (audits[0]) {
-          const clientPart = (audits[0].client_name || '').split(/\s+/).map(w => w[0]).join('').toUpperCase().substring(0, 4);
-          const sitePart = (audits[0].site_name || '').split(/\s+/).map(w => w[0]).join('').toUpperCase().substring(0, 4);
           setSiteName(`${audits[0].client_name || ''} ${audits[0].site_name || ''}`.trim());
-          setSiteCode([clientPart, sitePart].filter(Boolean).join('-'));
         }
         if (zones[0]?.zone_name) {
           setZoneName(zones[0].zone_name);
@@ -194,17 +190,9 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
   // Auto-generate display code
   useEffect(() => {
     if (userEditedCode) return;
-    const equipPart = (data.asset_name || '').replace(/\s+/g, '').toUpperCase();
-    let parentPart = '';
-    if (data.electrical_parent_tbc) {
-      parentPart = 'TBC';
-    } else if (data.electrical_parent_id) {
-      const parent = allAssets.find(a => a.id === data.electrical_parent_id);
-      if (parent) parentPart = (parent.asset_name || '').replace(/\s+/g, '').toUpperCase();
-    }
-    const parts = [siteCode, equipPart, parentPart].filter(Boolean);
-    if (parts.length > 0) onChange({ ...data, display_code: parts.join('-') });
-  }, [siteCode, data.asset_name, data.electrical_parent_id, data.electrical_parent_tbc, userEditedCode]);
+    const parts = [siteName, data.asset_name].filter(Boolean);
+    if (parts.length > 0) onChange({ ...data, display_code: parts.join(' - ') });
+  }, [siteName, data.asset_name, userEditedCode]);
 
   const parentOptions = [
     { value: 'TBC', label: '— TBC / Unknown (to be confirmed) —' },
