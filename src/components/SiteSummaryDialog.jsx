@@ -38,6 +38,7 @@ function DeviceBlock({ meter, index }) {
       </button>
       {open && (
         <div className="px-3 py-2 space-y-1 bg-background">
+          <Row label="Device No." value={meter.device_number} mono />
           <Row label="Type" value={meter.meter_device_type} />
           <Row label="Serial No." value={meter.ww_switchboard?.serial_number || meter.meter_device_id} mono />
           <Row label="SB Name" value={meter.ww_switchboard?.sb_name} />

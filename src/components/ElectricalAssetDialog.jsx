@@ -12,6 +12,11 @@ export default function ElectricalAssetDialog({ open, onClose, initialData, zone
   const [existingNames, setExistingNames] = useState([]);
   const isEdit = !!initialData?.id;
 
+  // Re-sync form data whenever the dialog opens with new initialData
+  useEffect(() => {
+    if (open) setData(initialData || {});
+  }, [open, initialData?.id]);
+
   useEffect(() => {
     if (open && auditId) {
       base44.entities.ElectricalAsset.filter({ audit_id: auditId }).then(assets => {
