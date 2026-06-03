@@ -330,18 +330,10 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
                   )}
                   {zoneBoards.length > 0 && (
                     <div>
-                      {(() => {
-                        const meteredBoards = zoneBoards.filter(b => b.meter_present && (b.meters || []).length > 0);
-                        if (meteredBoards.length === 0) return null;
-                        return (
-                          <>
-                            <p className="text-[11px] font-semibold text-muted-foreground mb-1">Electrical Assets with Metering ({meteredBoards.length})</p>
-                            {meteredBoards.map(b => (
-                              <BoardBlock key={b.id} board={b} allBoards={boards} zoneMap={zoneMap} />
-                            ))}
-                          </>
-                        );
-                      })()}
+                      <p className="text-[11px] font-semibold text-muted-foreground mb-1">Electrical Boards ({zoneBoards.length})</p>
+                      {zoneBoards.map(b => (
+                        <BoardBlock key={b.id} board={b} allBoards={boards} zoneMap={zoneMap} />
+                      ))}
                     </div>
                   )}
                   {zoneAssets.length > 0 && (

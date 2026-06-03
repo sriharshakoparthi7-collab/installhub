@@ -67,17 +67,26 @@ function MeterDeviceBlock({ meter, index, onChange, onRemove, allBoards, siteNam
   }, [siteName, zoneName, meter.meter_device_type]);
 
   const handleWWChange = (updatedData) => {
-    // updatedData IS the full meter object returned by the WW form's onChange
-    // We must preserve top-level fields (device_name, device_number, meter_device_type, etc.)
-    // by merging rather than overwriting
     onChange({
       ...meter,
-      ...updatedData,
+      ww_prestart: updatedData.ww_prestart,
+      ww_switchboard: updatedData.ww_switchboard,
+      ww_channels: updatedData.ww_channels,
+      ww_verification: updatedData.ww_verification,
+      ww_commissioning: updatedData.ww_commissioning,
+      ww_photos: updatedData.ww_photos,
     });
   };
 
-  // Pass the full meter as data to WW forms so top-level fields (device_number etc.) are preserved
-  const wwData = meter;
+  // Build a fake "data" shape for ww forms
+  const wwData = {
+    ww_prestart: meter.ww_prestart,
+    ww_switchboard: meter.ww_switchboard,
+    ww_channels: meter.ww_channels,
+    ww_verification: meter.ww_verification,
+    ww_commissioning: meter.ww_commissioning,
+    ww_photos: meter.ww_photos,
+  };
 
   return (
     <div className="border border-border rounded-xl overflow-hidden">
