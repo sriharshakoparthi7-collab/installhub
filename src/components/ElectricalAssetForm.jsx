@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,19 +56,25 @@ const METER_COVERAGE = [
 
 function MeterDeviceBlock({ meter, index, onChange, onRemove, allBoards, siteName, zoneName, assetName, existingCount }) {
   const [expanded, setExpanded] = useState(true);
-  const set = (key, val) => onChange({ ...meter, [key]: val });
+  const meterRef = useRef(meter);
+  meterRef.current = meter;
+  const set = (key, val) => onChange({ ...meterRef.current, [key]: val });
 
-  // Auto-generate device name: SiteName - ZoneName - DeviceType - N
+  // Auto-generate device name only when there is no existing name and site info loads
+  const autoNamedRef = useRef(false);
   useEffect(() => {
-    if (meter.device_name) return;
-    const base = [siteName, zoneName, meter.meter_device_type || 'Device'].filter(Boolean).join(' - ');
+    if (autoNamedRef.current) return;
+    if (meterRef.current.device_name) { autoNamedRef.current = true; return; }
+    if (!siteName && !zoneName) return;
+    autoNamedRef.current = true;
+    const base = [siteName, zoneName, meterRef.current.meter_device_type || 'Device'].filter(Boolean).join(' - ');
     const name = `${base} ${index + 1}`;
-    onChange({ ...meter, device_name: name });
-  }, [siteName, zoneName, meter.meter_device_type]);
+    onChange({ ...meterRef.current, device_name: name });
+  }, [siteName, zoneName]);
 
   const handleWWChange = (updatedData) => {
     onChange({
-      ...meter,
+      ...meterRef.current,
       ww_prestart: updatedData.ww_prestart,
       ww_switchboard: updatedData.ww_switchboard,
       ww_channels: updatedData.ww_channels,
@@ -171,7 +177,10 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
   const [siteName, setSiteName] = useState('');
   const [zoneName, setZoneName] = useState('');
   const [userEditedCode, setUserEditedCode] = useState(!!data?.display_code);
-  const set = (key, val) => onChange({ ...data, [key]: val });
+  // Keep a ref to always-latest data so effects don't use stale closures
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const set = (key, val) => onChange({ ...dataRef.current, [key]: val });
 
   useEffect(() => {
     if (auditId) {
@@ -180,7 +189,7 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
         base44.entities.Audit.filter({ id: auditId }),
         currentZoneId ? base44.entities.Zone.filter({ id: currentZoneId }) : Promise.resolve([]),
       ]).then(([assets, audits, zones]) => {
-        setAllAssets(assets.filter(a => a.id !== data?.id));
+        setAllAssets(assets.filter(a => a.id !== dataRef.current?.id));
         if (audits[0]) {
           setSiteName(`${audits[0].client_name || ''} ${audits[0].site_name || ''}`.trim());
         }
@@ -191,11 +200,11 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
     }
   }, [auditId, currentZoneId]);
 
-  // Auto-generate display code
+  // Auto-generate display code using ref so it never clobbers latest data
   useEffect(() => {
     if (userEditedCode) return;
-    const parts = [siteName, data.asset_name].filter(Boolean);
-    if (parts.length > 0) onChange({ ...data, display_code: parts.join(' - ') });
+    const parts = [siteName, dataRef.current.asset_name].filter(Boolean);
+    if (parts.length > 0) onChange({ ...dataRef.current, display_code: parts.join(' - ') });
   }, [siteName, data.asset_name, userEditedCode]);
 
   const parentOptions = [
