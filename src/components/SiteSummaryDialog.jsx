@@ -189,23 +189,25 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
   const boardsWithDevices = boards.filter(b => b.meter_present && (b.meters || []).length > 0);
   const totalDevices = boards.reduce((acc, b) => acc + (b.meters || []).length, 0);
 
-  // Build flat rows for devices table
-  const deviceRows = [];
+  // Build grouped device entries for devices table
+  const deviceEntries = [];
   boards.forEach(board => {
-    (board.meters || []).forEach(meter => {
+    (board.meters || []).forEach((meter, mIdx) => {
       const parent = boards.find(b => b.id === board.electrical_parent_id);
       const fedFrom = board.electrical_parent_tbc ? 'TBC'
         : board.electrical_parent_id === 'GRID' ? 'Grid'
         : parent ? (parent.display_code || parent.asset_name) : '—';
-      deviceRows.push({
+      const channels = (meter.ww_channels || []).filter(ch => ch.load || ch.load_description || ch.coil_size || ch.ct_rating);
+      deviceEntries.push({
         device_number: meter.device_number || '—',
-        device_name: meter.device_name || `Device ${board.meters.indexOf(meter) + 1}`,
+        device_name: meter.device_name || `Device ${mIdx + 1}`,
         device_type: meter.meter_device_type || '—',
         client_name: audit?.client_name || '—',
         site_name: audit?.site_name || '—',
         asset_type: board.asset_type || '—',
         display_code: board.display_code || board.asset_name || '—',
         fed_from: fedFrom,
+        channels,
       });
     });
   });
@@ -229,7 +231,7 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
             </TabsList>
 
             <TabsContent value="devices">
-              {deviceRows.length === 0 ? (
+              {deviceEntries.length === 0 ? (
                 <p className="text-center text-xs text-muted-foreground py-8">No devices recorded yet.</p>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-border">
@@ -244,19 +246,34 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
                         <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Asset Type</th>
                         <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Display Code</th>
                         <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Fed From</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Channels</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {deviceRows.map((row, i) => (
-                        <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/20">
-                          <td className="px-3 py-2 font-mono font-semibold text-primary">{row.device_number}</td>
-                          <td className="px-3 py-2 text-foreground">{row.device_name}</td>
-                          <td className="px-3 py-2"><Badge variant="outline" className="text-[10px]">{row.device_type}</Badge></td>
-                          <td className="px-3 py-2 text-foreground">{row.client_name}</td>
-                          <td className="px-3 py-2 text-foreground">{row.site_name}</td>
-                          <td className="px-3 py-2 text-foreground">{row.asset_type}</td>
-                          <td className="px-3 py-2 font-mono text-foreground">{row.display_code}</td>
-                          <td className="px-3 py-2 text-foreground">{row.fed_from}</td>
+                      {deviceEntries.map((entry, i) => (
+                        <tr key={i} className="border-b border-border last:border-0 align-top hover:bg-muted/20">
+                          <td className="px-3 py-2 font-mono font-semibold text-primary whitespace-nowrap">{entry.device_number}</td>
+                          <td className="px-3 py-2 text-foreground">{entry.device_name}</td>
+                          <td className="px-3 py-2 whitespace-nowrap"><Badge variant="outline" className="text-[10px]">{entry.device_type}</Badge></td>
+                          <td className="px-3 py-2 text-foreground whitespace-nowrap">{entry.client_name}</td>
+                          <td className="px-3 py-2 text-foreground whitespace-nowrap">{entry.site_name}</td>
+                          <td className="px-3 py-2 text-foreground whitespace-nowrap">{entry.asset_type}</td>
+                          <td className="px-3 py-2 font-mono text-foreground whitespace-nowrap">{entry.display_code}</td>
+                          <td className="px-3 py-2 text-foreground whitespace-nowrap">{entry.fed_from}</td>
+                          <td className="px-3 py-2">
+                            {entry.channels.length === 0 ? (
+                              <span className="text-muted-foreground">—</span>
+                            ) : (
+                              <div className="space-y-0.5">
+                                {entry.channels.map((ch, ci) => (
+                                  <div key={ci} className="flex gap-1 text-[11px]">
+                                    <span className="text-muted-foreground font-mono w-8 flex-shrink-0">CH{ci + 1}</span>
+                                    <span className="text-foreground">{[ch.load, ch.load_description, ch.coil_size || ch.ct_rating].filter(Boolean).join(' · ')}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
