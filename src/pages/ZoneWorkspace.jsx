@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft, Plus, Zap, AlertTriangle, CircuitBoard, Cpu } from 'lucide-react';
+import { ArrowLeft, Plus, Zap, AlertTriangle, CircuitBoard, Cpu, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import MultiPhotoUpload from '../components/MultiPhotoUpload';
@@ -23,6 +23,7 @@ export default function ZoneWorkspace() {
   const [editBoard, setEditBoard] = useState(null);
   const [editAsset, setEditAsset] = useState(null);
   const [savingZone, setSavingZone] = useState(false);
+  const [sendingSummary, setSendingSummary] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -98,6 +99,23 @@ export default function ZoneWorkspace() {
     await base44.entities.SiteAsset.delete(assetId);
   };
 
+  const handleSendSummary = async () => {
+    setSendingSummary(true);
+    const res = await base44.functions.invoke('sendZoneSummary', { auditId, zoneId });
+    setSendingSummary(false);
+    if (res.data?.success) {
+      const ext = res.data.external_api;
+      if (ext) {
+        if (ext.ok) toast.success('Summary sent to external API successfully');
+        else toast.error(`External API returned status ${ext.status}`);
+      } else {
+        toast.success('Summary generated — no external API configured yet');
+      }
+    } else {
+      toast.error(res.data?.error || 'Failed to send summary');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -122,13 +140,21 @@ export default function ZoneWorkspace() {
           Back to Installation
         </button>
         <div className="bg-gradient-to-br from-accent/10 via-primary/5 to-transparent rounded-2xl p-5 border border-accent/10">
-          <h1 className="text-xl font-bold text-foreground">{zone?.zone_name}</h1>
-          {zone?.zone_description && (
-            <p className="text-sm text-muted-foreground mt-1">{zone.zone_description}</p>
-          )}
-          <p className="text-xs text-muted-foreground mt-2">
-            {boards.length} board{boards.length !== 1 ? 's' : ''} · {siteAssets.length} asset{siteAssets.length !== 1 ? 's' : ''} in this zone
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-foreground">{zone?.zone_name}</h1>
+              {zone?.zone_description && (
+                <p className="text-sm text-muted-foreground mt-1">{zone.zone_description}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                {boards.length} board{boards.length !== 1 ? 's' : ''} · {siteAssets.length} asset{siteAssets.length !== 1 ? 's' : ''} in this zone
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={handleSendSummary} disabled={sendingSummary} className="flex-shrink-0">
+              {sendingSummary ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+              Send Summary
+            </Button>
+          </div>
         </div>
       </div>
 
