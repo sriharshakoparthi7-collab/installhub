@@ -1,0 +1,101 @@
+{
+  "name": "SiteAsset",
+  "type": "object",
+  "properties": {
+    "audit_id": {
+      "type": "string",
+      "title": "Audit ID"
+    },
+    "zone_id": {
+      "type": "string",
+      "title": "Zone ID"
+    },
+    "asset_name": {
+      "type": "string",
+      "title": "Equipment Name"
+    },
+    "asset_type": {
+      "type": "string",
+      "title": "Asset Type",
+      "enum": [
+        "HVAC",
+        "Lighting",
+        "Solar / PV",
+        "EV Charger",
+        "Exhaust / Fan System",
+        "Power Outlet",
+        "Hot Water",
+        "Refrigeration",
+        "Compressed Air",
+        "Other"
+      ]
+    },
+    "electrical_board_id": {
+      "type": "string",
+      "title": "Electrical Board (Fed From)"
+    },
+    "electrical_board_tbc": {
+      "type": "boolean",
+      "title": "Electrical Board TBC",
+      "default": false
+    },
+    "location_description": {
+      "type": "string",
+      "title": "Physical Location Description"
+    },
+    "location_photo": {
+      "type": "string",
+      "title": "Location Photo"
+    },
+    "display_code": {
+      "type": "string",
+      "title": "Display Code"
+    },
+    "meter_present": {
+      "type": "boolean",
+      "title": "Metering / Device Present",
+      "default": false
+    },
+    "meter_switchboard_id": {
+      "type": "string",
+      "title": "Meter Switchboard"
+    },
+    "meter_switchboard_tbc": {
+      "type": "boolean",
+      "title": "Meter Switchboard TBC",
+      "default": false
+    },
+    "meter_channels": {
+      "type": "array",
+      "title": "Meter Channels",
+      "items": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "comments": {
+      "type": "string",
+      "title": "Comments"
+    },
+    "extra_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Additional Photos"
+    }
+  },
+  "required": [
+    "audit_id",
+    "zone_id",
+    "asset_name",
+    "asset_type"
+  ]
+}

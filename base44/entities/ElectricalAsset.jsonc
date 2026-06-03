@@ -112,6 +112,30 @@
         "Unknown"
       ]
     },
+    "meter_switchboard_id": {
+      "type": "string",
+      "title": "Meter Switchboard (Board where device is installed)"
+    },
+    "meter_switchboard_tbc": {
+      "type": "boolean",
+      "title": "Meter Switchboard TBC",
+      "default": false
+    },
+    "meter_channels": {
+      "type": "array",
+      "title": "Meter Channels (max 3)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "sub_circuits_description": {
       "type": "string",
       "title": "Sub-Circuits Description"

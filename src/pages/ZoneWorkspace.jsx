@@ -1,22 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft, Plus, Zap, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Zap, AlertTriangle, CircuitBoard, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import MultiPhotoUpload from '../components/MultiPhotoUpload';
 import ElectricalAssetDialog from '../components/ElectricalAssetDialog';
 import ElectricalAssetCard from '../components/ElectricalAssetCard';
+import SiteAssetDialog from '../components/SiteAssetDialog';
+import SiteAssetCard from '../components/SiteAssetCard';
 
 export default function ZoneWorkspace() {
   const { auditId, zoneId } = useParams();
   const navigate = useNavigate();
   const [zone, setZone] = useState(null);
-  const [assets, setAssets] = useState([]);
-  const [allSiteAssets, setAllSiteAssets] = useState([]);
+  const [boards, setBoards] = useState([]);         // ElectricalAsset (boards only)
+  const [siteAssets, setSiteAssets] = useState([]); // SiteAsset (non-board assets)
+  const [allSiteBoards, setAllSiteBoards] = useState([]); // all boards across site for parent lookups
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
+  const [boardDialogOpen, setBoardDialogOpen] = useState(false);
+  const [assetDialogOpen, setAssetDialogOpen] = useState(false);
+  const [editBoard, setEditBoard] = useState(null);
+  const [editAsset, setEditAsset] = useState(null);
   const [savingZone, setSavingZone] = useState(false);
 
   useEffect(() => {
@@ -24,51 +29,73 @@ export default function ZoneWorkspace() {
   }, [zoneId]);
 
   const loadData = async () => {
-    const [zoneData, zoneAssets, siteAssets] = await Promise.all([
+    const [zoneData, zoneBoards, siteBoards, zoneSiteAssets] = await Promise.all([
       base44.entities.Zone.filter({ id: zoneId }),
       base44.entities.ElectricalAsset.filter({ zone_id: zoneId }),
       base44.entities.ElectricalAsset.filter({ audit_id: auditId }),
+      base44.entities.SiteAsset.filter({ zone_id: zoneId }),
     ]);
     if (zoneData.length) setZone(zoneData[0]);
-    setAssets(zoneAssets);
-    setAllSiteAssets(siteAssets);
+    setBoards(zoneBoards);
+    setAllSiteBoards(siteBoards);
+    setSiteAssets(zoneSiteAssets);
     setLoading(false);
   };
 
-  const handleAdd = () => {
-    setEditItem(null);
-    setDialogOpen(true);
-  };
+  // --- Electrical Board CRUD ---
+  const handleAddBoard = () => { setEditBoard(null); setBoardDialogOpen(true); };
+  const handleEditBoard = (item) => { setEditBoard(item); setBoardDialogOpen(true); };
 
-  const handleEdit = (item) => {
-    setEditItem(item);
-    setDialogOpen(true);
-  };
-
-  const handleSave = async (data) => {
-    if (editItem?.id) {
+  const handleSaveBoard = async (data) => {
+    if (editBoard?.id) {
       const { id, created_date, updated_date, created_by, ...updateData } = data;
-      setAssets(prev => prev.map(a => a.id === editItem.id ? { ...a, ...updateData } : a));
-      setAllSiteAssets(prev => prev.map(a => a.id === editItem.id ? { ...a, ...updateData } : a));
-      toast.success('Asset updated');
-      await base44.entities.ElectricalAsset.update(editItem.id, updateData);
+      setBoards(prev => prev.map(a => a.id === editBoard.id ? { ...a, ...updateData } : a));
+      setAllSiteBoards(prev => prev.map(a => a.id === editBoard.id ? { ...a, ...updateData } : a));
+      toast.success('Board updated');
+      await base44.entities.ElectricalAsset.update(editBoard.id, updateData);
     } else {
       const tempId = `temp-${Date.now()}`;
       const optimistic = { ...data, id: tempId, zone_id: zoneId, audit_id: auditId };
-      setAssets(prev => [...prev, optimistic]);
-      setAllSiteAssets(prev => [...prev, optimistic]);
-      toast.success('Asset added');
+      setBoards(prev => [...prev, optimistic]);
+      setAllSiteBoards(prev => [...prev, optimistic]);
+      toast.success('Board added');
       const created = await base44.entities.ElectricalAsset.create({ ...data, zone_id: zoneId, audit_id: auditId });
-      setAssets(prev => prev.map(a => a.id === tempId ? created : a));
-      setAllSiteAssets(prev => prev.map(a => a.id === tempId ? created : a));
+      setBoards(prev => prev.map(a => a.id === tempId ? created : a));
+      setAllSiteBoards(prev => prev.map(a => a.id === tempId ? created : a));
     }
   };
 
-  const handleDelete = async (assetId) => {
-    setAssets(prev => prev.filter(a => a.id !== assetId));
-    setAllSiteAssets(prev => prev.filter(a => a.id !== assetId));
+  const handleDeleteBoard = async (boardId) => {
+    setBoards(prev => prev.filter(a => a.id !== boardId));
+    setAllSiteBoards(prev => prev.filter(a => a.id !== boardId));
+    toast.success('Board removed');
+    await base44.entities.ElectricalAsset.delete(boardId);
+  };
+
+  // --- Site Asset CRUD ---
+  const handleAddAsset = () => { setEditAsset(null); setAssetDialogOpen(true); };
+  const handleEditAsset = (item) => { setEditAsset(item); setAssetDialogOpen(true); };
+
+  const handleSaveAsset = async (data) => {
+    if (editAsset?.id) {
+      const { id, created_date, updated_date, created_by, ...updateData } = data;
+      setSiteAssets(prev => prev.map(a => a.id === editAsset.id ? { ...a, ...updateData } : a));
+      toast.success('Asset updated');
+      await base44.entities.SiteAsset.update(editAsset.id, updateData);
+    } else {
+      const tempId = `temp-${Date.now()}`;
+      const optimistic = { ...data, id: tempId, zone_id: zoneId, audit_id: auditId };
+      setSiteAssets(prev => [...prev, optimistic]);
+      toast.success('Asset added');
+      const created = await base44.entities.SiteAsset.create({ ...data, zone_id: zoneId, audit_id: auditId });
+      setSiteAssets(prev => prev.map(a => a.id === tempId ? created : a));
+    }
+  };
+
+  const handleDeleteAsset = async (assetId) => {
+    setSiteAssets(prev => prev.filter(a => a.id !== assetId));
     toast.success('Asset removed');
-    await base44.entities.ElectricalAsset.delete(assetId);
+    await base44.entities.SiteAsset.delete(assetId);
   };
 
   if (loading) {
@@ -79,7 +106,9 @@ export default function ZoneWorkspace() {
     );
   }
 
-  const tbcCount = assets.filter(a => a.electrical_parent_tbc).length;
+  const tbcBoardCount = boards.filter(a => a.electrical_parent_tbc).length;
+  const tbcAssetCount = siteAssets.filter(a => a.electrical_board_tbc).length;
+  const totalTbc = tbcBoardCount + tbcAssetCount;
 
   return (
     <div className="space-y-6">
@@ -97,7 +126,9 @@ export default function ZoneWorkspace() {
           {zone?.zone_description && (
             <p className="text-sm text-muted-foreground mt-1">{zone.zone_description}</p>
           )}
-          <p className="text-xs text-muted-foreground mt-2">{assets.length} electrical asset{assets.length !== 1 ? 's' : ''} in this zone</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            {boards.length} board{boards.length !== 1 ? 's' : ''} · {siteAssets.length} asset{siteAssets.length !== 1 ? 's' : ''} in this zone
+          </p>
         </div>
       </div>
 
@@ -117,64 +148,119 @@ export default function ZoneWorkspace() {
       </div>
 
       {/* TBC Warning */}
-      {tbcCount > 0 && (
+      {totalTbc > 0 && (
         <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
           <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">{tbcCount} asset{tbcCount > 1 ? 's' : ''} with TBC electrical parent</p>
-            <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">You can resolve these any time — the full site asset list is available in the "Fed From" dropdown.</p>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">{totalTbc} item{totalTbc > 1 ? 's' : ''} with TBC electrical connection</p>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">You can resolve these in the Report screen before completing the audit.</p>
           </div>
         </div>
       )}
 
-      {/* Assets Section */}
+      {/* ── ELECTRICAL BOARDS ── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            Electrical Assets ({assets.length})
-          </h2>
-          <Button size="sm" onClick={handleAdd}>
+          <div className="flex items-center gap-2">
+            <CircuitBoard className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Electrical Boards ({boards.length})
+            </h2>
+          </div>
+          <Button size="sm" onClick={handleAddBoard}>
             <Plus className="w-4 h-4 mr-1" />
-            Add Asset
+            Add Board
           </Button>
         </div>
 
-        {assets.length === 0 ? (
-          <div className="text-center py-12 bg-card rounded-xl border border-dashed border-border">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Zap className="w-7 h-7 text-primary" />
+        {boards.length === 0 ? (
+          <div className="text-center py-10 bg-card rounded-xl border border-dashed border-border">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+              <CircuitBoard className="w-6 h-6 text-primary" />
             </div>
-            <p className="text-sm font-medium text-foreground mb-1">No assets recorded yet</p>
-            <p className="text-xs text-muted-foreground mb-4">Add switchboards, distribution boards, and any Wattwatcher device installations.</p>
-            <Button variant="outline" size="sm" onClick={handleAdd}>
+            <p className="text-sm font-medium text-foreground mb-1">No boards recorded yet</p>
+            <p className="text-xs text-muted-foreground mb-3">Add MSBs, MSSBs, DBs and other switchboards.</p>
+            <Button variant="outline" size="sm" onClick={handleAddBoard}>
               <Plus className="w-4 h-4 mr-1" />
-              Add First Asset
+              Add First Board
             </Button>
           </div>
         ) : (
           <div className="space-y-3">
-            {assets.map(asset => (
+            {boards.map(board => (
               <ElectricalAssetCard
-                key={asset.id}
-                asset={asset}
-                allAssets={allSiteAssets}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
+                key={board.id}
+                asset={board}
+                allAssets={allSiteBoards}
+                onEdit={handleEditBoard}
+                onDelete={handleDeleteBoard}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Asset Dialog */}
-      {dialogOpen && (
+      {/* ── ASSETS ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-accent" />
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Assets ({siteAssets.length})
+            </h2>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleAddAsset}>
+            <Plus className="w-4 h-4 mr-1" />
+            Add Asset
+          </Button>
+        </div>
+
+        {siteAssets.length === 0 ? (
+          <div className="text-center py-10 bg-card rounded-xl border border-dashed border-border">
+            <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-3">
+              <Cpu className="w-6 h-6 text-accent" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">No assets recorded yet</p>
+            <p className="text-xs text-muted-foreground mb-3">Add HVAC units, lighting, solar, EV chargers and other equipment.</p>
+            <Button variant="outline" size="sm" onClick={handleAddAsset}>
+              <Plus className="w-4 h-4 mr-1" />
+              Add First Asset
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {siteAssets.map(asset => (
+              <SiteAssetCard
+                key={asset.id}
+                asset={asset}
+                allBoards={allSiteBoards}
+                onEdit={handleEditAsset}
+                onDelete={handleDeleteAsset}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Dialogs */}
+      {boardDialogOpen && (
         <ElectricalAssetDialog
-          open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
-          initialData={editItem}
+          open={boardDialogOpen}
+          onClose={() => setBoardDialogOpen(false)}
+          initialData={editBoard}
           zoneId={zoneId}
           auditId={auditId}
-          onSave={handleSave}
+          onSave={handleSaveBoard}
+        />
+      )}
+      {assetDialogOpen && (
+        <SiteAssetDialog
+          open={assetDialogOpen}
+          onClose={() => setAssetDialogOpen(false)}
+          initialData={editAsset}
+          zoneId={zoneId}
+          auditId={auditId}
+          onSave={handleSaveAsset}
         />
       )}
     </div>

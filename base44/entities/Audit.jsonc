@@ -1,0 +1,38 @@
+{
+  "name": "Audit",
+  "type": "object",
+  "properties": {
+    "site_name": {
+      "type": "string",
+      "title": "Site Name"
+    },
+    "site_address": {
+      "type": "string",
+      "title": "Site Address"
+    },
+    "inspector_name": {
+      "type": "string",
+      "title": "Inspector Name"
+    },
+    "audit_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Audit Date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Draft",
+        "Completed"
+      ],
+      "default": "Draft",
+      "title": "Status"
+    }
+  },
+  "required": [
+    "site_name",
+    "site_address",
+    "inspector_name",
+    "audit_date"
+  ]
+}

@@ -7,9 +7,16 @@ import PhotoUpload from './PhotoUpload';
 import MultiPhotoUpload from './MultiPhotoUpload';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Info, Plus, Trash2 } from 'lucide-react';
 import WattwatcherA3RMForm from './WattwatcherA3RMForm';
 import WattwatcherA6MForm from './WattwatcherA6MForm';
+
+const CHANNEL_OPTIONS = [
+  { value: 'Channel 1', label: 'Channel 1' },
+  { value: 'Channel 2', label: 'Channel 2' },
+  { value: 'Channel 3', label: 'Channel 3' },
+];
 
 function Field({ label, hint, children }) {
   return (
@@ -234,6 +241,83 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
                 options={METER_DEVICE_TYPES}
               />
             </Field>
+
+            {/* Switchboard & Channels — shown for all device types */}
+            <Field label="Switchboard (where device is installed)">
+              <MobileSelect
+                value={data.meter_switchboard_tbc ? 'TBC' : (data.meter_switchboard_id || '')}
+                onValueChange={v => {
+                  if (v === 'TBC') {
+                    onChange({ ...data, meter_switchboard_id: '', meter_switchboard_tbc: true });
+                  } else {
+                    onChange({ ...data, meter_switchboard_id: v, meter_switchboard_tbc: false });
+                  }
+                }}
+                placeholder="Select switchboard..."
+                options={[
+                  { value: 'TBC', label: '— TBC / Unknown —' },
+                  ...allAssets.map(a => ({ value: a.id, label: a.display_code || a.asset_name })),
+                ]}
+              />
+            </Field>
+            {data.meter_switchboard_tbc && (
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                Switchboard marked as TBC.
+              </div>
+            )}
+
+            {/* Channels */}
+            {(() => {
+              const channels = data.meter_channels || [];
+              const addChannel = () => {
+                if (channels.length >= 3) return;
+                set('meter_channels', [...channels, { channel: '', description: '' }]);
+              };
+              const removeChannel = (i) => set('meter_channels', channels.filter((_, idx) => idx !== i));
+              const updateChannel = (i, field, val) => {
+                const updated = channels.map((ch, idx) => idx === i ? { ...ch, [field]: val } : ch);
+                set('meter_channels', updated);
+              };
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-foreground">Channels (max 3)</label>
+                    {channels.length < 3 && (
+                      <Button type="button" size="sm" variant="outline" onClick={addChannel} className="h-7 text-xs gap-1">
+                        <Plus className="w-3 h-3" /> Add Channel
+                      </Button>
+                    )}
+                  </div>
+                  {channels.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic">No channels added yet.</p>
+                  )}
+                  {channels.map((ch, i) => (
+                    <div key={i} className="bg-muted/40 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-foreground">Channel {i + 1}</span>
+                        <button type="button" onClick={() => removeChannel(i)} className="text-destructive hover:opacity-70">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <MobileSelect
+                        value={ch.channel || ''}
+                        onValueChange={v => updateChannel(i, 'channel', v)}
+                        placeholder="Select channel..."
+                        options={CHANNEL_OPTIONS.filter(opt =>
+                          opt.value === ch.channel || !channels.some((c, ci) => ci !== i && c.channel === opt.value)
+                        )}
+                      />
+                      <Input
+                        value={ch.description || ''}
+                        onChange={e => updateChannel(i, 'description', e.target.value)}
+                        placeholder="Channel description / circuit name..."
+                        className="text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {data.meter_device_type === 'A3RM Auditor' && (
               <div className="space-y-2">
