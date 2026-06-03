@@ -50,7 +50,8 @@ export default function SiteAssetForm({ data, onChange, auditId, currentZoneId }
         base44.entities.SiteAsset.filter({ audit_id: auditId }),
       ]).then(([boards, audits, siteAssets]) => {
         setAllBoards(boards);
-        setSiteName(audits[0]?.site_name || '');
+        const a = audits[0];
+        setSiteName(a ? `${a.client_name || ''} ${a.site_name || ''}`.trim() : '');
         setAllSiteAssets(siteAssets.filter(a => a.id !== data?.id));
       });
     }
@@ -70,11 +71,13 @@ export default function SiteAssetForm({ data, onChange, auditId, currentZoneId }
   // Board options for "fed from"
   const boardOptions = [
     { value: 'TBC', label: '— TBC / Unknown (to be confirmed) —' },
+    { value: 'GRID', label: '⚡ From Grid' },
     ...allBoards.map(b => ({ value: b.id, label: b.display_code || b.asset_name })),
   ];
 
   const handleBoardChange = (val) => {
     if (val === 'TBC') onChange({ ...data, electrical_board_id: '', electrical_board_tbc: true });
+    else if (val === 'GRID') onChange({ ...data, electrical_board_id: 'GRID', electrical_board_tbc: false });
     else onChange({ ...data, electrical_board_id: val, electrical_board_tbc: false });
   };
 

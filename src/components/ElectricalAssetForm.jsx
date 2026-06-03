@@ -178,10 +178,11 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
         currentZoneId ? base44.entities.Zone.filter({ id: currentZoneId }) : Promise.resolve([]),
       ]).then(([assets, audits, zones]) => {
         setAllAssets(assets.filter(a => a.id !== data?.id));
-        if (audits[0]?.site_name) {
-          setSiteName(audits[0].site_name);
-          const code = audits[0].site_name.split(/\s+/).map(w => w[0]).join('').toUpperCase().substring(0, 6);
-          setSiteCode(code);
+        if (audits[0]) {
+          const clientPart = (audits[0].client_name || '').split(/\s+/).map(w => w[0]).join('').toUpperCase().substring(0, 4);
+          const sitePart = (audits[0].site_name || '').split(/\s+/).map(w => w[0]).join('').toUpperCase().substring(0, 4);
+          setSiteName(`${audits[0].client_name || ''} ${audits[0].site_name || ''}`.trim());
+          setSiteCode([clientPart, sitePart].filter(Boolean).join('-'));
         }
         if (zones[0]?.zone_name) {
           setZoneName(zones[0].zone_name);
@@ -207,11 +208,13 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
 
   const parentOptions = [
     { value: 'TBC', label: '— TBC / Unknown (to be confirmed) —' },
+    { value: 'GRID', label: '⚡ From Grid' },
     ...allAssets.map(a => ({ value: a.id, label: a.display_code || a.asset_name })),
   ];
 
   const handleParentChange = (val) => {
     if (val === 'TBC') onChange({ ...data, electrical_parent_id: '', electrical_parent_tbc: true });
+    else if (val === 'GRID') onChange({ ...data, electrical_parent_id: 'GRID', electrical_parent_tbc: false });
     else onChange({ ...data, electrical_parent_id: val, electrical_parent_tbc: false });
   };
 
@@ -268,13 +271,7 @@ export default function ElectricalAssetForm({ data, onChange, auditId, currentZo
             Marked as TBC — resolve in the reconciliation screen before completing.
           </div>
         )}
-        <Field label="Phase">
-          <MobileSelect value={data.phase || ''} onValueChange={v => set('phase', v)} placeholder="Select phase" options={[
-            { value: 'Single Phase', label: 'Single Phase' },
-            { value: 'Three Phase', label: 'Three Phase' },
-            { value: 'Unknown', label: 'Unknown' },
-          ]} />
-        </Field>
+
         <Field label="Amperage Rating (A)">
           <Input value={data.amperage_rating || ''} onChange={e => set('amperage_rating', e.target.value)} placeholder="e.g. 400A" />
         </Field>
