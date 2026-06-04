@@ -29,6 +29,12 @@ const CT_RATINGS = [
   'CT-60A', 'CT-120A', 'CT-250A', 'CT-400A', 'CT-600A', 'Not Used'
 ].map(v => ({ value: v, label: v }));
 
+const CHANNEL_PURPOSES = [
+  { value: 'MAIN_SUPPLY', label: '⚡ Main Board Supply — measures incoming feed for this board' },
+  { value: 'SUB_CIRCUIT', label: '🔌 Sub-Circuit / Asset — measures a child asset or outgoing circuit' },
+  { value: 'SPARE', label: '○ Spare / Unused' },
+];
+
 const LOAD_TYPES = [
   'Mains Supply', 'HVAC', 'Lighting', 'Solar PV', 'Forklift Charger', 'Hot Water', 'General Power', 'Other', 'Not Used'
 ].map(v => ({ value: v, label: v }));
@@ -100,17 +106,29 @@ export default function WattwatcherA6MForm({ data = {}, onChange }) {
       <div className="space-y-4">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">Channel Configuration (6 Channels)</p>
         {[0, 1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="bg-muted/40 rounded-lg p-3 space-y-3">
+          <div key={i} className={`rounded-lg p-3 space-y-3 border ${channels[i]?.purpose === 'MAIN_SUPPLY' ? 'bg-blue-50/60 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' : channels[i]?.purpose === 'SUB_CIRCUIT' ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800' : 'bg-muted/40 border-border'}`}>
             <p className="text-xs font-semibold text-foreground">Channel {i + 1}</p>
-            <Field label="CT Rating">
-              <MobileSelect value={channels[i]?.ct_rating || ''} onValueChange={v => setChannel(i, 'ct_rating', v)} placeholder="Select rating" options={CT_RATINGS} />
+            <Field label="Channel Purpose *" hint="Determines how this channel is used in energy calculations.">
+              <MobileSelect value={channels[i]?.purpose || ''} onValueChange={v => setChannel(i, 'purpose', v)} placeholder="Select purpose..." options={CHANNEL_PURPOSES} />
             </Field>
-            <Field label="Load">
-              <MobileSelect value={channels[i]?.load || ''} onValueChange={v => setChannel(i, 'load', v)} placeholder="Select load" options={LOAD_TYPES} />
-            </Field>
-            <Field label="Load Description">
-              <Input value={channels[i]?.load_description || ''} onChange={e => setChannel(i, 'load_description', e.target.value)} placeholder="e.g. Solar Phase C" />
-            </Field>
+            {channels[i]?.purpose === 'SUB_CIRCUIT' && (
+              <div className="bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-md px-2.5 py-1.5 text-xs text-emerald-700 dark:text-emerald-300">
+                This channel measures a child asset. It will be available for assignment when adding assets fed from this board.
+              </div>
+            )}
+            {channels[i]?.purpose !== 'SPARE' && (
+              <>
+                <Field label="CT Rating">
+                  <MobileSelect value={channels[i]?.ct_rating || ''} onValueChange={v => setChannel(i, 'ct_rating', v)} placeholder="Select rating" options={CT_RATINGS} />
+                </Field>
+                <Field label="Load">
+                  <MobileSelect value={channels[i]?.load || ''} onValueChange={v => setChannel(i, 'load', v)} placeholder="Select load" options={LOAD_TYPES} />
+                </Field>
+                <Field label="Load Description">
+                  <Input value={channels[i]?.load_description || ''} onChange={e => setChannel(i, 'load_description', e.target.value)} placeholder={channels[i]?.purpose === 'SUB_CIRCUIT' ? 'e.g. Rooftop HVAC Unit 1 (assign to asset later)' : 'e.g. Solar Phase C'} />
+                </Field>
+              </>
+            )}
           </div>
         ))}
       </div>

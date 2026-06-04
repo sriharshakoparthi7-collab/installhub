@@ -121,11 +121,16 @@ export default function SiteAssetForm({ data, onChange, auditId, currentZoneId }
     : selectedDevice?.meter_device_type?.includes('A3RM') ? 3
     : (selectedDevice?.ww_channels?.length || 6);
 
-  const availableChannels = ALL_CHANNELS.slice(0, deviceChannelCount).map((ch, i) => {
+  // Only expose channels marked as SUB_CIRCUIT (or with no purpose set, for backwards compat)
+  const availableChannels = ALL_CHANNELS.slice(0, deviceChannelCount).reduce((acc, ch, i) => {
     const wwCh = selectedDevice?.ww_channels?.[i];
+    const purpose = wwCh?.purpose;
+    // Hide MAIN_SUPPLY and SPARE channels — only SUB_CIRCUIT (or legacy unpurposed) are assignable
+    if (purpose === 'MAIN_SUPPLY' || purpose === 'SPARE') return acc;
     const suffix = wwCh?.load_description || wwCh?.load ? ` — ${wwCh.load_description || wwCh.load}` : '';
-    return { value: ch, label: `${ch}${suffix}` };
-  });
+    const purposeTag = purpose === 'SUB_CIRCUIT' ? '' : ' (unclassified)';
+    return [...acc, { value: ch, label: `${ch}${suffix}${purposeTag}` }];
+  }, []);
 
   // Channel management
   const channels = data.meter_channels || [];
@@ -270,8 +275,12 @@ export default function SiteAssetForm({ data, onChange, auditId, currentZoneId }
                         </Button>
                       )}
                     </div>
-                    {channels.length === 0 && (
-                      <p className="text-xs text-muted-foreground italic">No channels assigned yet.</p>
+                    {availableChannels.length === 0 ? (
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3 text-xs text-amber-700 dark:text-amber-300">
+                        No assignable channels found on this device. Only channels marked as <strong>Sub-Circuit / Asset</strong> can be assigned to assets. Go back to the board and set the Channel Purpose for the relevant channels.
+                      </div>
+                    ) : channels.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">No channels assigned yet. Only Sub-Circuit channels from this device are shown.</p>
                     )}
                     {channels.map((ch, i) => (
                       <div key={i} className="bg-muted/40 rounded-lg p-3 space-y-2">
