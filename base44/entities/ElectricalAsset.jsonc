@@ -87,6 +87,9 @@
           "device_name": {
             "type": "string"
           },
+          "device_number": {
+            "type": "string"
+          },
           "meter_device_type": {
             "type": "string"
           },

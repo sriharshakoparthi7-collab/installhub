@@ -12,10 +12,11 @@ export default function ElectricalAssetDialog({ open, onClose, initialData, zone
   const [existingNames, setExistingNames] = useState([]);
   const isEdit = !!initialData?.id;
 
-  // Re-sync form data whenever the dialog opens with new initialData
+  // Re-sync form data whenever the dialog opens OR initialData changes (ensures
+  // saved data — including nested meter fields like device_number — rehydrates correctly)
   useEffect(() => {
     if (open) setData(initialData || {});
-  }, [open, initialData?.id]);
+  }, [open, initialData]);
 
   useEffect(() => {
     if (open && auditId) {
