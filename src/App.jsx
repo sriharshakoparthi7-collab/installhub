@@ -15,6 +15,7 @@ import ClientReport from './pages/ClientReport';
 import Settings from './pages/Settings';
 import PhotoPreview from './pages/PhotoPreview';
 import WattMapperReport from './pages/WattMapperReport';
+import MeteringAssetsTable from './pages/MeteringAssetsTable';
 
 
 const AuthenticatedApp = () => {
@@ -51,6 +52,7 @@ const AuthenticatedApp = () => {
         <Route path="/audit/:auditId/client-report" element={<ClientReport />} />
         <Route path="/audit/:auditId/photo-preview" element={<PhotoPreview />} />
         <Route path="/audit/:auditId/wattmapper-report" element={<WattMapperReport />} />
+        <Route path="/audit/:auditId/metering-assets" element={<MeteringAssetsTable />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, Save, Loader2, CheckCircle, FileText, Trash2, AlertTriangle, Download, LayoutList } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Loader2, CheckCircle, FileText, Trash2, AlertTriangle, Download, LayoutList, Table2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ZoneCard from '../components/ZoneCard';
 import SiteSummaryDialog from '../components/SiteSummaryDialog';
@@ -146,6 +146,14 @@ export default function SiteAudit() {
               <LayoutList className="w-3.5 h-3.5 mr-1.5" />
               Summary
             </Button>
+          )}
+          {!isNew && (
+            <Link to={`/audit/${auditId}/metering-assets`}>
+              <Button variant="outline" size="sm">
+                <Table2 className="w-3.5 h-3.5 mr-1.5" />
+                Metering Table
+              </Button>
+            </Link>
           )}
           {!isNew && (
             <Link to={`/audit/${auditId}/wattmapper-report`}>
