@@ -5,86 +5,123 @@ import { ArrowLeft, Loader2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 // ─── Data Transformation ─────────────────────────────────────────────────────
+
+// Parse a SiteAsset's meter_channels into channel indices (0-based)
+function parseSiteAssetChannelIndices(asset) {
+  return (asset.meter_channels || [])
+    .map(c => {
+      // stored as "Channel 1", "C1", "1", etc.
+      const raw = (c.channel || '').replace(/[^0-9]/g, '');
+      const n = parseInt(raw, 10);
+      return isNaN(n) ? null : n - 1; // convert to 0-based index
+    })
+    .filter(n => n !== null);
+}
+
+// Find the specific meter on a board whose ww_channels include ALL of the given
+// 0-based channel indices with a SUB_CIRCUIT purpose. Falls back to any meter
+// that contains at least one matching channel.
+function findMeterForChannels(board, channelIndices) {
+  if (!board || !channelIndices.length) return null;
+  const meters = board.meters || [];
+
+  // Strict match: meter that has SUB_CIRCUIT on ALL requested channels
+  const strict = meters.find(m =>
+    channelIndices.every(idx => (m.ww_channels || [])[idx]?.purpose === 'SUB_CIRCUIT')
+  );
+  if (strict) return strict;
+
+  // Loose match: at least one channel index is SUB_CIRCUIT
+  return meters.find(m =>
+    channelIndices.some(idx => (m.ww_channels || [])[idx]?.purpose === 'SUB_CIRCUIT')
+  ) || null;
+}
+
+// Given a board, return its MAIN_SUPPLY channel labels from ALL its meters
+// (each meter tracks its own channels independently).
+function getBoardMainSupplyChannels(board) {
+  if (!board) return '—';
+  const labels = [];
+  (board.meters || []).forEach(m => {
+    (m.ww_channels || []).forEach((ch, i) => {
+      if (ch.purpose === 'MAIN_SUPPLY') labels.push(`C${i + 1}`);
+    });
+  });
+  return labels.length ? [...new Set(labels)].join(', ') : '—';
+}
+
+function parentName(board) {
+  if (!board) return '—';
+  return board.display_code || board.asset_name || '—';
+}
+
 function buildRows(audit, boards, siteAssets) {
   const rows = [];
 
-  // Helper: given a board, return its first device's MAIN_SUPPLY channel labels
-  const getMainSupplyChannels = (board) => {
-    if (!board) return '—';
-    const device = (board.meters || [])[0];
-    if (!device) return '—';
-    const labels = (device.ww_channels || [])
-      .map((ch, i) => ({ ch, i }))
-      .filter(({ ch }) => ch.purpose === 'MAIN_SUPPLY')
-      .map(({ i }) => `C${i + 1}`);
-    return labels.length ? labels.join(', ') : '—';
-  };
-
-  // Helper: resolve parent board display name
-  const parentName = (board) => {
-    if (!board) return '—';
-    return board.display_code || board.asset_name || '—';
-  };
-
   // ── SiteAsset rows ──────────────────────────────────────────────────────────
   siteAssets.forEach(asset => {
-    const parentBoard = boards.find(b => b.id === asset.electrical_board_id);
-    const meterBoard = boards.find(b => b.id === asset.meter_switchboard_id);
-    const device = asset.meter_present
-      ? (meterBoard?.meters || []).find(m => m.device_name === asset.meter_device_id)
-        || (meterBoard?.meters || [])[0]
+    // Each asset is independent — resolve its own board + meter per iteration
+    const parentBoard = boards.find(b => b.id === asset.electrical_board_id) || null;
+    const meterBoard  = boards.find(b => b.id === asset.meter_switchboard_id) || null;
+
+    const channelIndices = parseSiteAssetChannelIndices(asset);
+    const channels = channelIndices.length
+      ? channelIndices.map(i => `C${i + 1}`).join(', ')
       : null;
 
-    const channels = asset.meter_present && (asset.meter_channels || []).length
-      ? asset.meter_channels.map(c => c.channel.replace('Channel ', 'C')).join(', ')
+    // Find the specific meter on the meter board that covers these channels
+    const device = asset.meter_present && meterBoard
+      ? findMeterForChannels(meterBoard, channelIndices)
       : null;
 
-    const fedFromDevice = asset.electrical_board_tbc ? 'TBC' : parentName(parentBoard);
-    const fedFromChannels = asset.electrical_board_tbc ? '—' : getMainSupplyChannels(parentBoard);
+    const fedFromDevice   = asset.electrical_board_tbc ? 'TBC' : parentName(parentBoard);
+    const fedFromChannels = asset.electrical_board_tbc ? '—'   : getBoardMainSupplyChannels(parentBoard);
 
     rows.push({
       key: `site-${asset.id}`,
       device_number: device?.device_number || null,
-      device_name: device?.device_name || asset.meter_device_id || null,
+      device_name:   device?.device_name   || null,
       channels,
-      client_name: audit?.client_name || '—',
-      asset_name: asset.asset_name,
-      asset_type: asset.asset_type || '—',
-      fed_from_device: fedFromDevice,
+      client_name:      audit?.client_name || '—',
+      asset_name:       asset.asset_name,
+      asset_type:       asset.asset_type || '—',
+      fed_from_device:  fedFromDevice,
       fed_from_channels: fedFromChannels,
-      metered: !!device && !!channels,
+      metered:  !!device && !!channels,
       is_board: false,
     });
   });
 
-  // ── ElectricalAsset (board) rows — only those with MAIN_SUPPLY channels ────
+  // ── ElectricalAsset (board) rows — one row per meter that has MAIN_SUPPLY ──
   boards.forEach(board => {
     (board.meters || []).forEach((meter, mIdx) => {
+      // Each meter is scoped entirely within its own loop variable
       const mainChs = (meter.ww_channels || [])
         .map((ch, i) => ({ ch, i }))
         .filter(({ ch }) => ch.purpose === 'MAIN_SUPPLY');
       if (mainChs.length === 0) return;
-      const channelStr = mainChs.map(({ i }) => `C${i + 1}`).join(', ');
 
-      const parentBoard = boards.find(b => b.id === board.electrical_parent_id);
+      const channelStr = mainChs.map(({ i }) => `C${i + 1}`).join(', ');
+      const parentBoard = boards.find(b => b.id === board.electrical_parent_id) || null;
+
       const fedFromDevice = board.electrical_parent_tbc ? 'TBC'
         : board.electrical_parent_id === 'GRID' ? 'Grid'
         : parentName(parentBoard);
       const fedFromChannels = board.electrical_parent_tbc ? '—'
         : board.electrical_parent_id === 'GRID' ? '—'
-        : getMainSupplyChannels(parentBoard);
+        : getBoardMainSupplyChannels(parentBoard);
 
       rows.push({
         key: `board-${board.id}-${mIdx}`,
         device_number: meter.device_number || null,
-        device_name: meter.device_name || `Device ${mIdx + 1}`,
-        channels: channelStr,
-        client_name: audit?.client_name || '—',
-        asset_name: board.display_code || board.asset_name,
-        asset_type: board.asset_type || '—',
-        fed_from_device: fedFromDevice,
+        device_name:   meter.device_name   || `Device ${mIdx + 1}`,
+        channels:      channelStr,
+        client_name:   audit?.client_name || '—',
+        asset_name:    board.display_code || board.asset_name,
+        asset_type:    board.asset_type || '—',
+        fed_from_device:   fedFromDevice,
         fed_from_channels: fedFromChannels,
-        metered: true,
+        metered:  true,
         is_board: true,
       });
     });
