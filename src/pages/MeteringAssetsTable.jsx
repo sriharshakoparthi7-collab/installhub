@@ -222,7 +222,7 @@ export default function MeteringAssetsTable() {
                     {row.device_number ? row.device_number : <NullCell label="Unmetered" />}
                   </td>
                   {/* Device Name */}
-                  <td className="px-3 py-2 max-w-[160px] truncate" title={row.device_name || ''}>
+                  <td className="px-3 py-2 whitespace-nowrap">
                     {row.device_name || <NullCell />}
                   </td>
                   {/* Channels */}
