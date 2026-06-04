@@ -190,25 +190,80 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
   const boardsWithDevices = boards.filter(b => b.meter_present && (b.meters || []).length > 0);
   const totalDevices = boards.reduce((acc, b) => acc + (b.meters || []).length, 0);
 
-  // Build grouped device entries for devices table
-  const deviceEntries = [];
+  // Build asset-centric rows for the Devices Table.
+  // Each row = one SiteAsset that has meter_present + at least one channel assigned.
+  // Also include ElectricalAssets (boards) that have a device with SUB_CIRCUIT channels,
+  // but only the board-level entries themselves are shown if they have MAIN_SUPPLY channels.
+  const assetRows = [];
+
+  // Helper: given a board, find its device and return channels matching a purpose
+  const getBoardDeviceChannels = (board, purpose) => {
+    const device = (board?.meters || [])[0]; // use first device on the parent board
+    if (!device) return { device, channelStr: '—' };
+    const wwChs = device.ww_channels || [];
+    const matched = wwChs
+      .map((ch, i) => ({ ch, i }))
+      .filter(({ ch }) => purpose ? ch.purpose === purpose : true);
+    const channelStr = matched.length
+      ? matched.map(({ i }) => `C${i + 1}`).join(', ')
+      : '—';
+    return { device, channelStr };
+  };
+
+  // Rows from SiteAssets with metering
+  siteAssets.forEach(asset => {
+    if (!asset.meter_present) return;
+
+    // Find the device on the meter switchboard that this asset references
+    const meterBoard = boards.find(b => b.id === asset.meter_switchboard_id);
+    const device = (meterBoard?.meters || []).find(m => m.device_name === asset.meter_device_id)
+      || (meterBoard?.meters || [])[0];
+
+    // Channels assigned to this asset
+    const assetChannels = (asset.meter_channels || []).map(c => c.channel.replace('Channel ', 'C')).join(', ') || '—';
+
+    // Parent board (the board this asset is electrically fed from)
+    const parentBoard = boards.find(b => b.id === asset.electrical_board_id);
+    const fedFromDevice = parentBoard ? (parentBoard.display_code || parentBoard.asset_name) : (asset.electrical_board_tbc ? 'TBC' : '—');
+    const { channelStr: fedFromChannels } = getBoardDeviceChannels(parentBoard, 'MAIN_SUPPLY');
+
+    assetRows.push({
+      device_number: device?.device_number || '—',
+      device_name: device?.device_name || asset.meter_device_id || '—',
+      channels: assetChannels,
+      client_name: audit?.client_name || '—',
+      asset_name: asset.asset_name,
+      asset_type: asset.asset_type || '—',
+      fed_from_device: fedFromDevice,
+      fed_from_channels: fedFromChannels,
+    });
+  });
+
+  // Also add rows for ElectricalAssets (boards) that have MAIN_SUPPLY channels
+  // — these represent the board's own gross metering row
   boards.forEach(board => {
     (board.meters || []).forEach((meter, mIdx) => {
-      const parent = boards.find(b => b.id === board.electrical_parent_id);
-      const fedFrom = board.electrical_parent_tbc ? 'TBC'
+      const wwChs = meter.ww_channels || [];
+      const mainChs = wwChs.map((ch, i) => ({ ch, i })).filter(({ ch }) => ch.purpose === 'MAIN_SUPPLY');
+      if (mainChs.length === 0) return;
+      const channelStr = mainChs.map(({ i }) => `C${i + 1}`).join(', ');
+
+      const parentBoard = boards.find(b => b.id === board.electrical_parent_id);
+      const fedFromDevice = board.electrical_parent_tbc ? 'TBC'
         : board.electrical_parent_id === 'GRID' ? 'Grid'
-        : parent ? (parent.display_code || parent.asset_name) : '—';
-      const channels = (meter.ww_channels || []).filter(ch => ch.load || ch.load_description || ch.coil_size || ch.ct_rating);
-      deviceEntries.push({
+        : parentBoard ? (parentBoard.display_code || parentBoard.asset_name) : '—';
+      const { channelStr: fedFromChannels } = getBoardDeviceChannels(parentBoard, 'MAIN_SUPPLY');
+
+      assetRows.push({
         device_number: meter.device_number || '—',
         device_name: meter.device_name || `Device ${mIdx + 1}`,
-        device_type: meter.meter_device_type || '—',
+        channels: channelStr,
         client_name: audit?.client_name || '—',
-        site_name: audit?.site_name || '—',
+        asset_name: board.display_code || board.asset_name,
         asset_type: board.asset_type || '—',
-        display_code: board.display_code || board.asset_name || '—',
-        fed_from: fedFrom,
-        channels,
+        fed_from_device: fedFromDevice,
+        fed_from_channels: fedFromChannels,
+        is_board: true,
       });
     });
   });
@@ -232,8 +287,8 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
             </TabsList>
 
             <TabsContent value="devices">
-              {deviceEntries.length === 0 ? (
-                <p className="text-center text-xs text-muted-foreground py-8">No devices recorded yet.</p>
+              {assetRows.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-8">No metered assets or devices recorded yet.</p>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-border">
                   <table className="w-full text-xs">
@@ -241,40 +296,28 @@ export default function SiteSummaryDialog({ open, onClose, auditId, audit }) {
                       <tr className="bg-muted/50 border-b border-border">
                         <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Device No.</th>
                         <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Device Name</th>
-                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Device Type</th>
-                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Client</th>
-                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Site</th>
-                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Asset Type</th>
-                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Display Code</th>
-                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Fed From</th>
                         <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Channels</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Client</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Asset Name</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Asset Type</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Fed From — Device</th>
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground whitespace-nowrap">Fed From — Channels</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {deviceEntries.map((entry, i) => (
-                        <tr key={i} className="border-b border-border last:border-0 align-top hover:bg-muted/20">
-                          <td className="px-3 py-2 font-mono font-semibold text-primary whitespace-nowrap">{entry.device_number}</td>
-                          <td className="px-3 py-2 text-foreground">{entry.device_name}</td>
-                          <td className="px-3 py-2 whitespace-nowrap"><Badge variant="outline" className="text-[10px]">{entry.device_type}</Badge></td>
-                          <td className="px-3 py-2 text-foreground whitespace-nowrap">{entry.client_name}</td>
-                          <td className="px-3 py-2 text-foreground whitespace-nowrap">{entry.site_name}</td>
-                          <td className="px-3 py-2 text-foreground whitespace-nowrap">{entry.asset_type}</td>
-                          <td className="px-3 py-2 font-mono text-foreground whitespace-nowrap">{entry.display_code}</td>
-                          <td className="px-3 py-2 text-foreground whitespace-nowrap">{entry.fed_from}</td>
-                          <td className="px-3 py-2">
-                            {entry.channels.length === 0 ? (
-                              <span className="text-muted-foreground">—</span>
-                            ) : (
-                              <div className="space-y-0.5">
-                                {entry.channels.map((ch, ci) => (
-                                  <div key={ci} className="flex gap-1 text-[11px]">
-                                    <span className="text-muted-foreground font-mono w-8 flex-shrink-0">CH{ci + 1}</span>
-                                    <span className="text-foreground">{[ch.load, ch.load_description, ch.coil_size || ch.ct_rating].filter(Boolean).join(' · ')}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                      {assetRows.map((row, i) => (
+                        <tr key={i} className={`border-b border-border last:border-0 hover:bg-muted/20 ${row.is_board ? 'bg-blue-50/40 dark:bg-blue-950/10' : ''}`}>
+                          <td className="px-3 py-2 font-mono text-[11px] font-semibold text-primary whitespace-nowrap">{row.device_number}</td>
+                          <td className="px-3 py-2 text-foreground max-w-[160px] truncate" title={row.device_name}>{row.device_name}</td>
+                          <td className="px-3 py-2 font-mono text-foreground whitespace-nowrap">{row.channels}</td>
+                          <td className="px-3 py-2 text-foreground whitespace-nowrap">{row.client_name}</td>
+                          <td className="px-3 py-2 text-foreground font-medium whitespace-nowrap">
+                            {row.asset_name}
+                            {row.is_board && <Badge variant="outline" className="ml-1.5 text-[9px] text-blue-600 border-blue-300">Board</Badge>}
                           </td>
+                          <td className="px-3 py-2 whitespace-nowrap"><Badge variant="outline" className="text-[10px]">{row.asset_type}</Badge></td>
+                          <td className="px-3 py-2 text-foreground whitespace-nowrap">{row.fed_from_device}</td>
+                          <td className="px-3 py-2 font-mono text-foreground whitespace-nowrap">{row.fed_from_channels}</td>
                         </tr>
                       ))}
                     </tbody>
