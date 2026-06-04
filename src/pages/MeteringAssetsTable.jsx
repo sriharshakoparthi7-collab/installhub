@@ -60,18 +60,24 @@ function buildRows(audit, boards, siteAssets) {
 
   // ── SiteAsset rows ──────────────────────────────────────────────────────────
   siteAssets.forEach(asset => {
-    // Each asset is independent — resolve its own board + meter per iteration
+    // Strictly isolate all variables to this iteration — no shared state
     const parentBoard = boards.find(b => b.id === asset.electrical_board_id) || null;
-    const meterBoard  = boards.find(b => b.id === asset.meter_switchboard_id) || null;
-
-    const channelIndices = parseSiteAssetChannelIndices(asset);
-    const channels = channelIndices.length
-      ? channelIndices.map(i => `C${i + 1}`).join(', ')
+    const meterBoard  = asset.meter_present
+      ? (boards.find(b => b.id === asset.meter_switchboard_id) || null)
       : null;
 
-    // Find the specific meter on the meter board that covers these channels
-    const device = asset.meter_present && meterBoard
+    // Only parse channel indices if this asset is metered AND has a meter board
+    const channelIndices = meterBoard ? parseSiteAssetChannelIndices(asset) : [];
+
+    // Find the specific meter on the meter board for these exact channels
+    const device = meterBoard && channelIndices.length
       ? findMeterForChannels(meterBoard, channelIndices)
+      : null;
+
+    // Channels MUST only be non-null if a device was successfully resolved.
+    // Never inherit or display channel data from the parent board.
+    const channels = device && channelIndices.length
+      ? channelIndices.map(i => `C${i + 1}`).join(', ')
       : null;
 
     const fedFromDevice   = asset.electrical_board_tbc ? 'TBC' : parentName(parentBoard);
@@ -82,10 +88,10 @@ function buildRows(audit, boards, siteAssets) {
       device_number: device?.device_number || null,
       device_name:   device?.device_name   || null,
       channels,
-      client_name:      audit?.client_name || '—',
-      asset_name:       asset.asset_name,
-      asset_type:       asset.asset_type || '—',
-      fed_from_device:  fedFromDevice,
+      client_name:       audit?.client_name || '—',
+      asset_name:        asset.asset_name,
+      asset_type:        asset.asset_type || '—',
+      fed_from_device:   fedFromDevice,
       fed_from_channels: fedFromChannels,
       metered:  !!device && !!channels,
       is_board: false,
